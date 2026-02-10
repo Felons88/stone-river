@@ -2,7 +2,7 @@
 // This file handles all API calls from the frontend
 // Supabase credentials are NOT exposed here
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
+const API_BASE_URL = import.meta.env.MODE === 'production' 
   ? 'https://stoneriverbackend-production.up.railway.app/api'
   : 'http://localhost:3001/api';
 
