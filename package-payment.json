@@ -1,0 +1,11 @@
+{
+  "name": "payment-dependencies",
+  "description": "Install these payment gateway dependencies",
+  "dependencies": {
+    "stripe": "^14.14.0",
+    "@stripe/stripe-js": "^2.4.0",
+    "@stripe/react-stripe-js": "^2.4.0",
+    "@paypal/checkout-server-sdk": "^1.0.3",
+    "@paypal/react-paypal-js": "^8.1.3"
+  }
+}

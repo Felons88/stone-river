@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>StoneRiver SMS Sender</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 400px; margin: 0 auto; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; }
+        button { background: #2563eb; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        .sent { color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>StoneRiver SMS Sender</h2>
+        <p>Phone: <span id="phone"></span></p>
+        <p>Message:</p>
+        <textarea id="message"></textarea>
+        <button onclick="sendSMS()">Send SMS</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const phone = urlParams.get('phone');
+        const message = urlParams.get('message');
+
+        // Auto-fill if parameters provided
+        if (phone) {
+            document.getElementById('phone').textContent = phone;
+        }
+        if (message) {
+            document.getElementById('message').value = message;
+            // Auto-send after 1 second
+            setTimeout(sendSMS, 1000);
+        }
+
+        async function sendSMS() {
+            const phone = document.getElementById('phone').textContent;
+            const message = document.getElementById('message').value;
+            const status = document.getElementById('status');
+
+            if (!phone || !message) {
+                status.textContent = 'Please fill in phone and message';
+                status.className = '';
+                return;
+            }
+
+            status.textContent = 'Sending...';
+            status.className = '';
+
+            try {
+                // Use tel: link to open SMS app
+                const smsUrl = `sms:${phone}?body=${encodeURIComponent(message)}`;
+                window.location.href = smsUrl;
+                
+                status.textContent = 'SMS sent! Check your phone.';
+                status.className = 'sent';
+            } catch (error) {
+                status.textContent = 'Error: ' + error.message;
+                status.className = '';
+            }
+        }
+    </script>
+</body>
+</html>

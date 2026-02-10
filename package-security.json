@@ -1,0 +1,44 @@
+{
+  "name": "stoneriver-security",
+  "version": "1.0.0",
+  "description": "Security dependencies for StoneRiver website",
+  "main": "server-secure.js",
+  "scripts": {
+    "start": "node server-secure.js",
+    "dev": "nodemon server-secure.js",
+    "test": "jest",
+    "security-check": "npm audit",
+    "security-fix": "npm audit fix"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "express-session": "^1.17.3",
+    "cookie-parser": "^1.4.6",
+    "xss": "^1.0.14",
+    "validator": "^13.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "bcrypt": "^5.1.1",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.3.1",
+    "@supabase/supabase-js": "^2.38.4",
+    "nodemailer": "^6.9.7",
+    "twilio": "^4.19.0",
+    "stripe": "^14.9.0",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "keywords": ["security", "xss-protection", "sql-injection", "rate-limiting", "csrf", "helmet"],
+  "author": "StoneRiver Junk Removal",
+  "license": "MIT"
+}
