@@ -58,41 +58,76 @@ const ClientAccountSettingsModal = ({ isOpen, onClose, client }: ClientAccountSe
   }, [isOpen, client]);
 
   const loadClientData = async () => {
+    setLoading(true);
     try {
-      // Load client bookings, invoices, etc.
-      const [bookingsResponse, invoicesResponse] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://stone-river-production.up.railway.app'}/api/bookings?email=${client.email}`),
-        fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://stone-river-production.up.railway.app'}/api/invoices?client_email=${client.email}`)
+      // Fetch real client data
+      const [bookingsResponse, invoicesResponse, aiResponse] = await Promise.all([
+        fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://stone-river-production.up.railway.app'}/api/bookings?client=${client.email}`),
+        fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://stone-river-production.up.railway.app'}/api/invoices?client=${client.email}`),
+        fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://stone-river-production.up.railway.app'}/api/ai/analyze-client`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client: client,
+            bookings: [], // Will be populated from real data
+            invoices: [], // Will be populated from real data
+            totalSpent: 0,
+            pastDue: 0
+          })
+        })
       ]);
 
       const bookings = await bookingsResponse.json();
       const invoices = await invoicesResponse.json();
+      
+      // Calculate real financial data
+      const totalSpent = invoices.reduce((sum, invoice) => 
+        invoice.status === 'paid' ? sum + parseFloat(invoice.total || 0) : sum, 0
+      );
+      const pastDue = invoices.reduce((sum, invoice) => 
+        invoice.status === 'unpaid' || invoice.status === 'overdue' ? sum + parseFloat(invoice.total || 0) : sum, 0
+      );
 
-      const totalSpent = invoices?.filter((inv: any) => inv.status === 'paid').reduce((sum: number, inv: any) => sum + (inv.total_amount || 0), 0);
-      const pastDue = invoices?.filter((inv: any) => inv.status === 'overdue' || inv.status === 'pending').reduce((sum: number, inv: any) => sum + (inv.total_amount || 0), 0);
-
-      setClientData({
-        bookings: bookings || [],
-        invoices: invoices || [],
-        totalSpent,
-        pastDue,
-        lastLogin: new Date().toISOString(),
-        accountStatus: 'active',
-        emailVerified: true,
-        phoneVerified: false,
-        twoFactorEnabled: false,
-        marketingConsent: true,
-        smsConsent: true
+      // Now get AI analysis with real data
+      const aiAnalysisResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://stone-river-production.up.railway.app'}/api/ai/analyze-client`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client: client,
+          bookings: bookings,
+          invoices: invoices,
+          totalSpent: totalSpent,
+          pastDue: pastDue
+        })
       });
 
-      // Calculate AI-driven scores
-      await calculateAIScores(bookings || [], invoices || [], totalSpent, pastDue);
-      
-      // Generate AI insights
-      await generateAIInsights(bookings || [], invoices || [], totalSpent);
-      
-    } catch (error) {
-      console.error('Failed to load client data:', error);
+      const aiAnalysis = await aiAnalysisResponse.json();
+
+      // Set real data
+      setClientData({
+        bookings: bookings,
+        invoices: invoices,
+        totalSpent: totalSpent,
+        pastDue: pastDue
+      });
+
+      // Set AI scores from real analysis
+      setRiskScore(aiAnalysis.riskScore || 0);
+      setLoyaltyScore(aiAnalysis.loyaltyScore || 0);
+      setEngagementScore(aiAnalysis.engagementScore || 0);
+      setAiInsight(aiAnalysis.insight || 'AI analysis not available');
+      setSmartSuggestions(aiAnalysis.suggestions || []);
+      setAiAnalysis(aiAnalysis);
+
+    } catch (error: any) {
+      console.error('Error loading client data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load client data',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 

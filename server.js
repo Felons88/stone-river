@@ -955,42 +955,131 @@ Format your response as JSON:
 
 // Fallback analysis function
 function getFallbackAnalysis(client, bookings, invoices, totalSpent, pastDue) {
-  // Calculate basic scores
-  let riskScore = 0;
-  if (pastDue > 0) riskScore += Math.min(pastDue / 100, 30);
-  if (bookings.length === 0) riskScore += 10;
-  if (totalSpent < 100) riskScore += 5;
-  riskScore = Math.min(riskScore, 100);
+  console.log('🤖 Calculating fallback analysis with real data:', {
+    client: client.email,
+    bookingsCount: bookings.length,
+    invoicesCount: invoices.length,
+    totalSpent,
+    pastDue
+  });
 
-  let loyaltyScore = 0;
-  loyaltyScore += Math.min(bookings.length * 5, 40);
-  loyaltyScore += Math.min(totalSpent / 50, 30);
-  loyaltyScore += pastDue === 0 ? 20 : -10;
-  loyaltyScore += bookings.filter(b => b.status === 'completed').length * 2;
-  loyaltyScore = Math.max(0, Math.min(loyaltyScore, 100));
+  // Calculate realistic scores based on actual data
+  let riskScore = 15; // Base risk score
+  
+  // Risk factors
+  if (pastDue > 0) {
+    riskScore += Math.min(pastDue / 50, 40); // More penalty for higher past due amounts
+  }
+  if (bookings.length === 0) {
+    riskScore += 20; // Higher risk for no bookings
+  } else if (bookings.filter(b => b.status === 'cancelled').length > bookings.length * 0.3) {
+    riskScore += 15; // High cancellation rate
+  }
+  if (totalSpent < 100) {
+    riskScore += 10; // Low spending indicates low commitment
+  }
+  if (invoices.filter(i => i.status === 'overdue').length > 0) {
+    riskScore += 25; // Overdue invoices are high risk
+  }
+  riskScore = Math.min(Math.max(riskScore, 5), 95); // Keep between 5-95
 
-  let engagementScore = 0;
-  engagementScore += bookings.length * 3;
-  engagementScore += invoices.length * 2;
-  engagementScore += totalSpent > 0 ? 15 : 0;
-  engagementScore = Math.min(engagementScore, 100);
+  // Loyalty Score
+  let loyaltyScore = 25; // Base loyalty
+  
+  // Loyalty factors
+  loyaltyScore += Math.min(bookings.length * 8, 35); // More bookings = more loyalty
+  loyaltyScore += Math.min(totalSpent / 100, 25); // Higher spending = more loyalty
+  loyaltyScore += pastDue === 0 ? 15 : -15; // Good payment history
+  loyaltyScore += bookings.filter(b => b.status === 'completed').length * 3; // Completed bookings
+  if (totalSpent > 1000) loyaltyScore += 10; // High value client
+  if (bookings.length > 5) loyaltyScore += 10; // Repeat client
+  loyaltyScore = Math.min(Math.max(loyaltyScore, 10), 95);
+
+  // Engagement Score
+  let engagementScore = 20; // Base engagement
+  
+  // Engagement factors
+  engagementScore += Math.min(bookings.length * 5, 30); // Booking activity
+  engagementScore += Math.min(invoices.length * 3, 15); // Invoice interaction
+  engagementScore += totalSpent > 0 ? 10 : 0; // Any spending shows engagement
+  if (bookings.length > 0) {
+    const daysSinceLastBooking = bookings.length > 0 ? 
+      Math.max(...bookings.map(b => new Date(b.created_at).getTime())) : 0;
+    const daysSince = (Date.now() - daysSinceLastBooking) / (1000 * 60 * 60 * 24);
+    if (daysSince < 30) engagementScore += 15; // Recent activity
+    else if (daysSince < 90) engagementScore += 10; // Moderate activity
+    else engagementScore -= 5; // Low recent activity
+  }
+  engagementScore = Math.min(Math.max(engagementScore, 10), 90);
+
+  // Generate realistic insights based on data
+  let insights = [];
+  if (bookings.length === 0) {
+    insights.push('New client with no booking history');
+  } else if (bookings.length === 1) {
+    insights.push('First-time client, potential for repeat business');
+  } else if (bookings.length > 5) {
+    insights.push('Established repeat client with strong engagement');
+  }
+
+  if (totalSpent > 2000) {
+    insights.push('High-value client with significant spending');
+  } else if (totalSpent > 500) {
+    insights.push('Moderate spending with growth potential');
+  }
+
+  if (pastDue > 0) {
+    insights.push(`Has outstanding balance of $${pastDue.toFixed(2)}`);
+  } else {
+    insights.push('Excellent payment history');
+  }
+
+  const completedBookings = bookings.filter(b => b.status === 'completed').length;
+  if (completedBookings === bookings.length && bookings.length > 0) {
+    insights.push('Perfect booking completion rate');
+  }
+
+  // Generate smart recommendations
+  const suggestions = [];
+  if (bookings.length === 0) {
+    suggestions.push('Send welcome email with first-time discount');
+    suggestions.push('Schedule follow-up call to discuss services');
+  } else if (bookings.length === 1) {
+    suggestions.push('Send thank you email with loyalty offer');
+    suggestions.push('Schedule seasonal maintenance reminder');
+  } else {
+    suggestions.push('Offer exclusive loyalty program benefits');
+    suggestions.push('Provide priority scheduling options');
+  }
+
+  if (pastDue > 0) {
+    suggestions.unshift('Send payment reminder with flexible options');
+  }
+
+  if (totalSpent > 1000) {
+    suggestions.push('Offer premium service packages');
+  }
+
+  // Predictive analytics
+  const avgBookingValue = bookings.length > 0 ? totalSpent / bookings.length : 0;
+  const nextBookingProbability = bookings.length > 3 ? 85 : 
+                                 bookings.length > 1 ? 65 : 
+                                 bookings.length === 1 ? 45 : 25;
+
+  const churnRisk = pastDue > 0 ? Math.min(pastDue / 100 + 20, 70) :
+                   bookings.length === 0 ? 40 :
+                   bookings.length === 1 ? 25 : 15;
 
   return {
-    riskScore,
-    loyaltyScore,
-    engagementScore,
-    insight: `${client.name} has ${bookings.length} bookings with ${totalSpent.toFixed(2)} total spent. ${pastDue > 0 ? 'Has outstanding balance.' : 'Good payment history.'}`,
-    suggestions: [
-      bookings.length === 0 ? 'Send welcome email with special offer' : null,
-      totalSpent > 1000 ? 'Offer loyalty discount program' : null,
-      pastDue > 0 ? 'Send payment reminder with flexible options' : null,
-      'Schedule seasonal service reminder',
-      'Send personalized thank you message'
-    ].filter(Boolean),
-    nextBookingProbability: bookings.length > 3 ? 85 : bookings.length > 0 ? 60 : 25,
-    lifetimeValue: totalSpent * 2.5,
-    churnRisk: pastDue > 0 ? Math.min(pastDue / 50, 70) : 10,
-    bestContactTime: 'Tuesday 2-4 PM'
+    riskScore: Math.round(riskScore),
+    loyaltyScore: Math.round(loyaltyScore),
+    engagementScore: Math.round(engagementScore),
+    insight: insights.join('. ') + `.`,
+    suggestions: suggestions.slice(0, 5), // Limit to 5 suggestions
+    nextBookingProbability,
+    lifetimeValue: totalSpent * (1 + bookings.length * 0.5), // More bookings = higher LTV
+    churnRisk: Math.round(churnRisk),
+    bestContactTime: bookings.length > 2 ? 'Tuesday 2-4 PM' : 'Monday 10-12 PM'
   };
 }
 
@@ -1221,6 +1310,66 @@ Format as structured JSON:
     
   } catch (error) {
     console.error('🤖 Generate report error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get client bookings
+app.get('/api/bookings', async (req, res) => {
+  try {
+    const { client } = req.query;
+    
+    // Fetch bookings from database
+    const { data: bookings, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('client_email', client)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    res.json(bookings || []);
+  } catch (error) {
+    console.error('Get bookings error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get client invoices
+app.get('/api/invoices', async (req, res) => {
+  try {
+    const { client } = req.query;
+    
+    // Fetch invoices from database
+    const { data: invoices, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('client_email', client)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    res.json(invoices || []);
+  } catch (error) {
+    console.error('Get invoices error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all clients
+app.get('/api/clients', async (req, res) => {
+  try {
+    // Fetch clients from database
+    const { data: clients, error } = await supabase
+      .from('clients')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    res.json(clients || []);
+  } catch (error) {
+    console.error('Get clients error:', error);
     res.status(500).json({ error: error.message });
   }
 });
