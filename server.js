@@ -957,11 +957,15 @@ Format your response as JSON:
 function getFallbackAnalysis(client, bookings, invoices, totalSpent, pastDue) {
   console.log('🤖 Calculating fallback analysis with real data:', {
     client: client.email,
-    bookingsCount: bookings.length,
-    invoicesCount: invoices.length,
+    bookingsCount: Array.isArray(bookings) ? bookings.length : 0,
+    invoicesCount: Array.isArray(invoices) ? invoices.length : 0,
     totalSpent,
     pastDue
   });
+
+  // Ensure we have arrays
+  const safeBookings = Array.isArray(bookings) ? bookings : [];
+  const safeInvoices = Array.isArray(invoices) ? invoices : [];
 
   // Calculate realistic scores based on actual data
   let riskScore = 15; // Base risk score
@@ -970,15 +974,15 @@ function getFallbackAnalysis(client, bookings, invoices, totalSpent, pastDue) {
   if (pastDue > 0) {
     riskScore += Math.min(pastDue / 50, 40); // More penalty for higher past due amounts
   }
-  if (bookings.length === 0) {
+  if (safeBookings.length === 0) {
     riskScore += 20; // Higher risk for no bookings
-  } else if (bookings.filter(b => b.status === 'cancelled').length > bookings.length * 0.3) {
+  } else if (safeBookings.filter(b => b.status === 'cancelled').length > safeBookings.length * 0.3) {
     riskScore += 15; // High cancellation rate
   }
   if (totalSpent < 100) {
     riskScore += 10; // Low spending indicates low commitment
   }
-  if (invoices.filter(i => i.status === 'overdue').length > 0) {
+  if (safeInvoices.filter(i => i.status === 'overdue').length > 0) {
     riskScore += 25; // Overdue invoices are high risk
   }
   riskScore = Math.min(Math.max(riskScore, 5), 95); // Keep between 5-95
@@ -987,24 +991,24 @@ function getFallbackAnalysis(client, bookings, invoices, totalSpent, pastDue) {
   let loyaltyScore = 25; // Base loyalty
   
   // Loyalty factors
-  loyaltyScore += Math.min(bookings.length * 8, 35); // More bookings = more loyalty
+  loyaltyScore += Math.min(safeBookings.length * 8, 35); // More bookings = more loyalty
   loyaltyScore += Math.min(totalSpent / 100, 25); // Higher spending = more loyalty
   loyaltyScore += pastDue === 0 ? 15 : -15; // Good payment history
-  loyaltyScore += bookings.filter(b => b.status === 'completed').length * 3; // Completed bookings
+  loyaltyScore += safeBookings.filter(b => b.status === 'completed').length * 3; // Completed bookings
   if (totalSpent > 1000) loyaltyScore += 10; // High value client
-  if (bookings.length > 5) loyaltyScore += 10; // Repeat client
+  if (safeBookings.length > 5) loyaltyScore += 10; // Repeat client
   loyaltyScore = Math.min(Math.max(loyaltyScore, 10), 95);
 
   // Engagement Score
   let engagementScore = 20; // Base engagement
   
   // Engagement factors
-  engagementScore += Math.min(bookings.length * 5, 30); // Booking activity
-  engagementScore += Math.min(invoices.length * 3, 15); // Invoice interaction
+  engagementScore += Math.min(safeBookings.length * 5, 30); // Booking activity
+  engagementScore += Math.min(safeInvoices.length * 3, 15); // Invoice interaction
   engagementScore += totalSpent > 0 ? 10 : 0; // Any spending shows engagement
-  if (bookings.length > 0) {
-    const daysSinceLastBooking = bookings.length > 0 ? 
-      Math.max(...bookings.map(b => new Date(b.created_at).getTime())) : 0;
+  if (safeBookings.length > 0) {
+    const daysSinceLastBooking = safeBookings.length > 0 ? 
+      Math.max(...safeBookings.map(b => new Date(b.created_at || b.date || Date.now()).getTime())) : 0;
     const daysSince = (Date.now() - daysSinceLastBooking) / (1000 * 60 * 60 * 24);
     if (daysSince < 30) engagementScore += 15; // Recent activity
     else if (daysSince < 90) engagementScore += 10; // Moderate activity
@@ -1014,11 +1018,11 @@ function getFallbackAnalysis(client, bookings, invoices, totalSpent, pastDue) {
 
   // Generate realistic insights based on data
   let insights = [];
-  if (bookings.length === 0) {
+  if (safeBookings.length === 0) {
     insights.push('New client with no booking history');
-  } else if (bookings.length === 1) {
+  } else if (safeBookings.length === 1) {
     insights.push('First-time client, potential for repeat business');
-  } else if (bookings.length > 5) {
+  } else if (safeBookings.length > 5) {
     insights.push('Established repeat client with strong engagement');
   }
 
@@ -1034,17 +1038,17 @@ function getFallbackAnalysis(client, bookings, invoices, totalSpent, pastDue) {
     insights.push('Excellent payment history');
   }
 
-  const completedBookings = bookings.filter(b => b.status === 'completed').length;
-  if (completedBookings === bookings.length && bookings.length > 0) {
+  const completedBookings = safeBookings.filter(b => b.status === 'completed').length;
+  if (completedBookings === safeBookings.length && safeBookings.length > 0) {
     insights.push('Perfect booking completion rate');
   }
 
   // Generate smart recommendations
   const suggestions = [];
-  if (bookings.length === 0) {
+  if (safeBookings.length === 0) {
     suggestions.push('Send welcome email with first-time discount');
     suggestions.push('Schedule follow-up call to discuss services');
-  } else if (bookings.length === 1) {
+  } else if (safeBookings.length === 1) {
     suggestions.push('Send thank you email with loyalty offer');
     suggestions.push('Schedule seasonal maintenance reminder');
   } else {
@@ -1061,14 +1065,14 @@ function getFallbackAnalysis(client, bookings, invoices, totalSpent, pastDue) {
   }
 
   // Predictive analytics
-  const avgBookingValue = bookings.length > 0 ? totalSpent / bookings.length : 0;
-  const nextBookingProbability = bookings.length > 3 ? 85 : 
-                                 bookings.length > 1 ? 65 : 
-                                 bookings.length === 1 ? 45 : 25;
+  const avgBookingValue = safeBookings.length > 0 ? totalSpent / safeBookings.length : 0;
+  const nextBookingProbability = safeBookings.length > 3 ? 85 : 
+                                 safeBookings.length > 1 ? 65 : 
+                                 safeBookings.length === 1 ? 45 : 25;
 
   const churnRisk = pastDue > 0 ? Math.min(pastDue / 100 + 20, 70) :
-                   bookings.length === 0 ? 40 :
-                   bookings.length === 1 ? 25 : 15;
+                   safeBookings.length === 0 ? 40 :
+                   safeBookings.length === 1 ? 25 : 15;
 
   return {
     riskScore: Math.round(riskScore),
@@ -1077,9 +1081,9 @@ function getFallbackAnalysis(client, bookings, invoices, totalSpent, pastDue) {
     insight: insights.join('. ') + `.`,
     suggestions: suggestions.slice(0, 5), // Limit to 5 suggestions
     nextBookingProbability,
-    lifetimeValue: totalSpent * (1 + bookings.length * 0.5), // More bookings = higher LTV
+    lifetimeValue: totalSpent * (1 + safeBookings.length * 0.5), // More bookings = higher LTV
     churnRisk: Math.round(churnRisk),
-    bestContactTime: bookings.length > 2 ? 'Tuesday 2-4 PM' : 'Monday 10-12 PM'
+    bestContactTime: safeBookings.length > 2 ? 'Tuesday 2-4 PM' : 'Monday 10-12 PM'
   };
 }
 
@@ -1319,16 +1323,99 @@ app.get('/api/bookings', async (req, res) => {
   try {
     const { client } = req.query;
     
-    // Fetch bookings from database
-    const { data: bookings, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('client_email', client)
-      .order('created_at', { ascending: false });
+    console.log('🔍 Fetching bookings for client:', client);
+    
+    // Since we don't know the exact schema, let's try different approaches
+    let bookings = [];
+    
+    try {
+      // Try with client_email column
+      const { data: bookings1, error: error1 } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('client_email', client)
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
+      if (!error1 && bookings1) {
+        bookings = bookings1;
+        console.log('✅ Found bookings with client_email column:', bookings1.length);
+      }
+    } catch (e) {
+      console.log('❌ client_email column not found');
+    }
 
-    res.json(bookings || []);
+    if (bookings.length === 0) {
+      try {
+        // Try with email column
+        const { data: bookings2, error: error2 } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('email', client)
+          .order('created_at', { ascending: false });
+
+        if (!error2 && bookings2) {
+          bookings = bookings2;
+          console.log('✅ Found bookings with email column:', bookings2.length);
+        }
+      } catch (e) {
+        console.log('❌ email column not found');
+      }
+    }
+
+    if (bookings.length === 0) {
+      try {
+        // Try with customer_email column
+        const { data: bookings3, error: error3 } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('customer_email', client)
+          .order('created_at', { ascending: false });
+
+        if (!error3 && bookings3) {
+          bookings = bookings3;
+          console.log('✅ Found bookings with customer_email column:', bookings3.length);
+        }
+      } catch (e) {
+        console.log('❌ customer_email column not found');
+      }
+    }
+
+    // If still no bookings, try to get all bookings and filter manually
+    if (bookings.length === 0) {
+      try {
+        const { data: allBookings, error: error4 } = await supabase
+          .from('bookings')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (!error4 && allBookings) {
+          // Filter bookings that might belong to this client
+          bookings = allBookings.filter(booking => {
+            // Check various possible email fields
+            return (
+              booking.client_email === client ||
+              booking.email === client ||
+              booking.customer_email === client ||
+              booking.customer?.email === client ||
+              booking.client?.email === client
+            );
+          });
+          console.log('✅ Found bookings by manual filtering:', bookings.length);
+        }
+      } catch (e) {
+        console.log('❌ Error fetching all bookings:', e);
+      }
+    }
+
+    // Ensure we return an array
+    if (!Array.isArray(bookings)) {
+      bookings = [];
+    }
+
+    console.log('📊 Final bookings count:', bookings.length);
+    res.json(bookings);
+
   } catch (error) {
     console.error('Get bookings error:', error);
     res.status(500).json({ error: error.message });
@@ -1340,16 +1427,97 @@ app.get('/api/invoices', async (req, res) => {
   try {
     const { client } = req.query;
     
-    // Fetch invoices from database
-    const { data: invoices, error } = await supabase
-      .from('invoices')
-      .select('*')
-      .eq('client_email', client)
-      .order('created_at', { ascending: false });
+    console.log('🔍 Fetching invoices for client:', client);
+    
+    let invoices = [];
+    
+    try {
+      // Try with client_email column
+      const { data: invoices1, error: error1 } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('client_email', client)
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
+      if (!error1 && invoices1) {
+        invoices = invoices1;
+        console.log('✅ Found invoices with client_email column:', invoices1.length);
+      }
+    } catch (e) {
+      console.log('❌ client_email column not found');
+    }
 
-    res.json(invoices || []);
+    if (invoices.length === 0) {
+      try {
+        // Try with email column
+        const { data: invoices2, error: error2 } = await supabase
+          .from('invoices')
+          .select('*')
+          .eq('email', client)
+          .order('created_at', { ascending: false });
+
+        if (!error2 && invoices2) {
+          invoices = invoices2;
+          console.log('✅ Found invoices with email column:', invoices2.length);
+        }
+      } catch (e) {
+        console.log('❌ email column not found');
+      }
+    }
+
+    if (invoices.length === 0) {
+      try {
+        // Try with customer_email column
+        const { data: invoices3, error: error3 } = await supabase
+          .from('invoices')
+          .select('*')
+          .eq('customer_email', client)
+          .order('created_at', { ascending: false });
+
+        if (!error3 && invoices3) {
+          invoices = invoices3;
+          console.log('✅ Found invoices with customer_email column:', invoices3.length);
+        }
+      } catch (e) {
+        console.log('❌ customer_email column not found');
+      }
+    }
+
+    // If still no invoices, try to get all invoices and filter manually
+    if (invoices.length === 0) {
+      try {
+        const { data: allInvoices, error: error4 } = await supabase
+          .from('invoices')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (!error4 && allInvoices) {
+          // Filter invoices that might belong to this client
+          invoices = allInvoices.filter(invoice => {
+            return (
+              invoice.client_email === client ||
+              invoice.email === client ||
+              invoice.customer_email === client ||
+              invoice.customer?.email === client ||
+              invoice.client?.email === client
+            );
+          });
+          console.log('✅ Found invoices by manual filtering:', invoices.length);
+        }
+      } catch (e) {
+        console.log('❌ Error fetching all invoices:', e);
+      }
+    }
+
+    // Ensure we return an array
+    if (!Array.isArray(invoices)) {
+      invoices = [];
+    }
+
+    console.log('📊 Final invoices count:', invoices.length);
+    res.json(invoices);
+
   } catch (error) {
     console.error('Get invoices error:', error);
     res.status(500).json({ error: error.message });
@@ -1359,15 +1527,67 @@ app.get('/api/invoices', async (req, res) => {
 // Get all clients
 app.get('/api/clients', async (req, res) => {
   try {
-    // Fetch clients from database
-    const { data: clients, error } = await supabase
-      .from('clients')
-      .select('*')
-      .order('created_at', { ascending: false });
+    console.log('🔍 Fetching all clients');
+    
+    let clients = [];
+    
+    try {
+      // Try clients table first
+      const { data: clients1, error: error1 } = await supabase
+        .from('clients')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
+      if (!error1 && clients1) {
+        clients = clients1;
+        console.log('✅ Found clients from clients table:', clients1.length);
+      }
+    } catch (e) {
+      console.log('❌ clients table not found');
+    }
 
-    res.json(clients || []);
+    if (clients.length === 0) {
+      try {
+        // Try customers table
+        const { data: clients2, error: error2 } = await supabase
+          .from('customers')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error2 && clients2) {
+          clients = clients2;
+          console.log('✅ Found clients from customers table:', clients2.length);
+        }
+      } catch (e) {
+        console.log('❌ customers table not found');
+      }
+    }
+
+    if (clients.length === 0) {
+      try {
+        // Try users table
+        const { data: clients3, error: error3 } = await supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error3 && clients3) {
+          clients = clients3;
+          console.log('✅ Found clients from users table:', clients3.length);
+        }
+      } catch (e) {
+        console.log('❌ users table not found');
+      }
+    }
+
+    // Ensure we return an array
+    if (!Array.isArray(clients)) {
+      clients = [];
+    }
+
+    console.log('📊 Final clients count:', clients.length);
+    res.json(clients);
+
   } catch (error) {
     console.error('Get clients error:', error);
     res.status(500).json({ error: error.message });
