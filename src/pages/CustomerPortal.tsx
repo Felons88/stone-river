@@ -20,6 +20,37 @@ const CustomerPortal = () => {
   }, []);
 
   const checkAuth = async () => {
+    // Check for admin view token first
+    const urlParams = new URLSearchParams(window.location.search);
+    const viewToken = urlParams.get('view_token');
+    
+    if (viewToken) {
+      try {
+        // Verify admin view token
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://stone-river-production.up.railway.app'}/api/customer/verify-view-token?token=${viewToken}`);
+        
+        if (!response.ok) {
+          throw new Error('Invalid or expired token');
+        }
+        
+        const data = await response.json();
+        
+        // Set user data from admin view
+        setUser({
+          ...data.client,
+          isAdminView: true,
+          expiresAt: data.expiresAt
+        });
+        
+        loadData(data.client.email);
+        return;
+      } catch (error) {
+        console.error('Admin view token error:', error);
+        // Fall back to normal auth
+      }
+    }
+    
+    // Normal customer auth check
     const customerAuth = localStorage.getItem('customerAuth');
     if (!customerAuth) {
       navigate('/portal/login');
@@ -91,12 +122,24 @@ const CustomerPortal = () => {
       <div className="bg-white border-b-2 border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-black text-gray-900">Customer Portal</h1>
+            <div>
+              <h1 className="text-2xl font-black text-gray-900">Customer Portal</h1>
+              {user?.isAdminView && (
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-bold">
+                    ADMIN VIEW
+                  </div>
+                  <span className="text-sm text-gray-600">
+                    Viewing as {user?.name} ({user?.email})
+                  </span>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-4">
               <span className="text-gray-600">{user?.email}</span>
               <Button onClick={handleLogout} variant="outline" size="sm">
                 <LogOut className="w-4 h-4 mr-2" />
-                Logout
+                {user?.isAdminView ? 'Close View' : 'Logout'}
               </Button>
             </div>
           </div>

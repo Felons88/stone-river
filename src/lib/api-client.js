@@ -2,9 +2,7 @@
 // This file handles all API calls from the frontend
 // Supabase credentials are NOT exposed here
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://stoneriverjunk.com/api' 
-  : 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://stone-river-production.up.railway.app';
 
 class ApiClient {
   constructor() {
@@ -76,94 +74,94 @@ class ApiClient {
   bookings = {
     getAll: (filters = {}) => {
       const params = new URLSearchParams(filters);
-      return this.request(`/bookings?${params}`);
+      return this.request(`/api/bookings?${params}`);
     },
     
-    getById: (id) => this.request(`/bookings/${id}`),
+    getById: (id) => this.request(`/api/bookings/${id}`),
     
-    create: (booking) => this.request('/bookings', {
+    create: (booking) => this.request('/api/bookings', {
       method: 'POST',
       body: JSON.stringify(booking),
     }),
     
-    update: (id, updates) => this.request(`/bookings/${id}`, {
+    update: (id, updates) => this.request(`/api/bookings/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     }),
     
-    delete: (id) => this.request(`/bookings/${id}`, {
+    delete: (id) => this.request(`/api/bookings/${id}`, {
       method: 'DELETE',
     }),
     
-    getAvailableSlots: (date) => this.request(`/bookings/available-slots?date=${date}`),
+    getAvailableSlots: (date) => this.request(`/api/bookings/available-slots?date=${date}`),
   };
 
   // Clients
   clients = {
-    getAll: () => this.request('/clients'),
+    getAll: () => this.request('/api/clients'),
     
-    getById: (id) => this.request(`/clients/${id}`),
+    getById: (id) => this.request(`/api/clients/${id}`),
     
-    create: (client) => this.request('/clients', {
+    create: (client) => this.request('/api/clients', {
       method: 'POST',
       body: JSON.stringify(client),
     }),
     
-    update: (id, updates) => this.request(`/clients/${id}`, {
+    update: (id, updates) => this.request(`/api/clients/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     }),
     
-    delete: (id) => this.request(`/clients/${id}`, {
+    delete: (id) => this.request(`/api/clients/${id}`, {
       method: 'DELETE',
     }),
     
-    search: (query) => this.request(`/clients/search?q=${encodeURIComponent(query)}`),
+    search: (query) => this.request(`/api/clients/search?q=${encodeURIComponent(query)}`),
   };
 
   // Invoices
   invoices = {
     getAll: (filters = {}) => {
       const params = new URLSearchParams(filters);
-      return this.request(`/invoices?${params}`);
+      return this.request(`/api/invoices?${params}`);
     },
     
-    getById: (id) => this.request(`/invoices/${id}`),
+    getById: (id) => this.request(`/api/invoices/${id}`),
     
-    create: (invoice) => this.request('/invoices', {
+    create: (invoice) => this.request('/api/invoices', {
       method: 'POST',
       body: JSON.stringify(invoice),
     }),
     
-    update: (id, updates) => this.request(`/invoices/${id}`, {
+    update: (id, updates) => this.request(`/api/invoices/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     }),
     
-    delete: (id) => this.request(`/invoices/${id}`, {
+    delete: (id) => this.request(`/api/invoices/${id}`, {
       method: 'DELETE',
     }),
   };
 
   // Notifications
   notifications = {
-    getAll: () => this.request('/notifications'),
+    getAll: () => this.request('/api/notifications'),
     
-    getUnread: () => this.request('/notifications/unread'),
+    getUnread: () => this.request('/api/notifications/unread'),
     
-    markAsRead: (id) => this.request(`/notifications/${id}/read`, {
+    markAsRead: (id) => this.request(`/api/notifications/${id}/read`, {
       method: 'PUT',
     }),
     
-    markAllAsRead: () => this.request('/notifications/read-all', {
+    markAllAsRead: () => this.request('/api/notifications/read-all', {
       method: 'PUT',
     }),
     
-    delete: (id) => this.request(`/notifications/${id}`, {
+    delete: (id) => this.request(`/api/notifications/${id}`, {
       method: 'DELETE',
     }),
     
-    create: (notification) => this.request('/notifications', {
+    create: (notification) => this.request('/api/notifications', {
       method: 'POST',
       body: JSON.stringify(notification),
     }),
@@ -171,25 +169,25 @@ class ApiClient {
 
   // Analytics
   analytics = {
-    getDashboardStats: () => this.request('/analytics/dashboard'),
+    getDashboardStats: () => this.request('/api/analytics/dashboard'),
     
-    getRevenueStats: () => this.request('/analytics/revenue'),
+    getRevenueStats: () => this.request('/api/analytics/revenue'),
     
-    getBookingStats: () => this.request('/analytics/bookings'),
+    getBookingStats: () => this.request('/api/analytics/bookings'),
     
-    getClientStats: () => this.request('/analytics/clients'),
+    getClientStats: () => this.request('/api/analytics/clients'),
   };
 
   // Email
   email = {
-    send: (emailData) => this.request('/email/send', {
+    send: (emailData) => this.request('/api/email/send', {
       method: 'POST',
       body: JSON.stringify(emailData),
     }),
     
-    getTemplates: () => this.request('/email/templates'),
+    getTemplates: () => this.request('/api/email/templates'),
     
-    sendTemplate: (templateId, data) => this.request(`/email/templates/${templateId}/send`, {
+    sendTemplate: (templateId, data) => this.request(`/api/email/templates/${templateId}/send`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -197,24 +195,24 @@ class ApiClient {
 
   // SMS
   sms = {
-    send: (smsData) => this.request('/sms/send', {
+    send: (smsData) => this.request('/api/sms/send', {
       method: 'POST',
       body: JSON.stringify(smsData),
     }),
     
-    getSubscribers: () => this.request('/sms/subscribers'),
+    getSubscribers: () => this.request('/api/sms/subscribers'),
     
-    subscribe: (phone) => this.request('/sms/subscribe', {
+    subscribe: (phone) => this.request('/api/sms/subscribe', {
       method: 'POST',
       body: JSON.stringify({ phone }),
     }),
     
-    unsubscribe: (phone) => this.request('/sms/unsubscribe', {
+    unsubscribe: (phone) => this.request('/api/sms/unsubscribe', {
       method: 'POST',
       body: JSON.stringify({ phone }),
     }),
     
-    sendNotification: (bookingId, type, message) => this.request('/sms/notification', {
+    sendNotification: (bookingId, type, message) => this.request('/api/sms/notification', {
       method: 'POST',
       body: JSON.stringify({ bookingId, type, message }),
     }),
@@ -227,30 +225,30 @@ class ApiClient {
       formData.append('file', file);
       formData.append('bookingId', bookingId);
       
-      return this.request('/upload/job-photo', {
+      return this.request('/api/upload/job-photo', {
         method: 'POST',
         body: formData,
         headers: {}, // Let browser set Content-Type for FormData
       });
     },
     
-    getJobPhotos: (bookingId) => this.request(`/upload/job-photos/${bookingId}`),
+    getJobPhotos: (bookingId) => this.request(`/api/upload/job-photos/${bookingId}`),
     
-    deleteJobPhoto: (photoId) => this.request(`/upload/job-photo/${photoId}`, {
+    deleteJobPhoto: (photoId) => this.request(`/api/upload/job-photo/${photoId}`, {
       method: 'DELETE',
     }),
   };
 
   // AI Assistant
   ai = {
-    chat: (message) => this.request('/ai/chat', {
+    chat: (message) => this.request('/api/ai/chat', {
       method: 'POST',
       body: JSON.stringify({ message }),
     }),
     
-    analyzeBooking: (bookingId) => this.request(`/ai/analyze-booking/${bookingId}`),
+    analyzeBooking: (bookingId) => this.request(`/api/ai/analyze-booking/${bookingId}`),
     
-    generateEmail: (type, data) => this.request('/ai/generate-email', {
+    generateEmail: (type, data) => this.request('/api/ai/generate-email', {
       method: 'POST',
       body: JSON.stringify({ type, data }),
     }),

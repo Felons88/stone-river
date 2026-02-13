@@ -32,6 +32,7 @@ import {
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api-client";
 import { useToast } from "@/hooks/use-toast";
+import { getAdminUser, isAdminAuthenticated, logoutAdmin } from "@/lib/adminAuth";
 
 // Import admin modules
 import AdminDashboardHome from "@/components/admin-panel/DashboardHome";
@@ -68,9 +69,10 @@ const AdminPanel = () => {
   const [notificationItems, setNotificationItems] = useState<any[]>([]);
   const [autoHideTimer, setAutoHideTimer] = useState<NodeJS.Timeout | null>(null);
 
+  const adminUser = getAdminUser();
+
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem('adminAuth');
-    if (!isAuthenticated) {
+    if (!isAdminAuthenticated()) {
       navigate('/admin/login');
       return;
     }
@@ -138,7 +140,7 @@ const AdminPanel = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('adminAuth');
+    logoutAdmin();
     navigate('/admin/login');
     toast({
       title: "Logged Out",

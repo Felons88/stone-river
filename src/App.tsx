@@ -25,7 +25,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminPanel from "./pages/AdminPanel";
 import InvoicePayment from "./pages/InvoicePayment";
 import PortalLogin from "./pages/PortalLogin";
-import CustomerPortal from "./pages/CustomerPortalRedesigned";
+import CustomerPortal from "./pages/CustomerPortal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +60,7 @@ const App = () => (
           <Route path="/invoice/:paymentLinkId" element={<InvoicePayment />} />
           <Route path="/portal/login" element={<PortalLogin />} />
           <Route path="/portal/dashboard" element={<CustomerPortal />} />
+          <Route path="/customer-portal" element={<CustomerPortal />} />
           <Route path="/portal" element={<Navigate to="/portal/login" replace />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

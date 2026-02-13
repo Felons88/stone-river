@@ -19,7 +19,7 @@ CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email);
 
 -- Insert default admin user (CHANGE PASSWORD IN PRODUCTION!)
 INSERT INTO admin_users (email, password, name, role)
-VALUES ('admin@stoneriverjunk.com', 'admin123', 'Admin User', 'super_admin')
+VALUES ('jameshewitt312@gmail.com', 'Daniel2002#', 'Admin User', 'super_admin')
 ON CONFLICT (email) DO NOTHING;
 
 -- Add reminder_sent column to bookings if not exists

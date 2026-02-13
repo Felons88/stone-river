@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { apiFetch } from '@/lib/config';
 import { motion } from "framer-motion";
 import { DollarSign, Wallet, ArrowLeft, Copy, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,9 +39,8 @@ const CashAppVenmoCheckout = ({ amount, invoiceId, gateway, onSuccess, onBack, o
     setSubmitting(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/payment/manual', {
+      const response = await apiFetch('/api/payment/manual', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           invoice_id: invoiceId,
           gateway: gateway,
@@ -50,7 +50,7 @@ const CashAppVenmoCheckout = ({ amount, invoiceId, gateway, onSuccess, onBack, o
         })
       });
 
-      const result = await response.json();
+      const result = response;
 
       if (result.success) {
         toast({

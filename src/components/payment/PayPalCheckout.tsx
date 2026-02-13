@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { apiFetch } from '@/lib/config';
 import { motion } from "framer-motion";
 import { Wallet, ArrowLeft, Loader2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,16 +22,15 @@ const PayPalCheckout = ({ amount, invoiceId, onSuccess, onBack, onCancel }: PayP
 
     try {
       // Create PayPal order
-      const response = await fetch('http://localhost:3001/api/payment/paypal/create', {
+      const response = await apiFetch('/api/payment/paypal/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: amount,
           invoice_id: invoiceId
         })
       });
 
-      const result = await response.json();
+      const result = response;
 
       if (result.success && result.approval_url) {
         // Redirect to PayPal for approval

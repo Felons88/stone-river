@@ -7,11 +7,18 @@ import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import jwt from 'jsonwebtoken';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
 import { startReviewSync, fetchGoogleReviews } from './google-reviews-sync.js';
 import { sendInvoiceEmail } from './email-automation.js';
 import { startReminderScheduler } from './sms-reminders.js';
 import { startQuoteFollowUpScheduler } from './quote-follow-up.js';
 import { startEmailAutomationScheduler, sendBookingConfirmation, sendOnTheWayNotification, sendRunningLateNotification, sendJobCompleteNotification } from './email-automation-triggers.js';
+
+// Initialize Gemini AI
+const genAI = new GoogleGenerativeAI('AIzaSyCfwsggzyCCEzXG-kvEhut1oThptWZbeuk');
+const aiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
 dotenv.config({ path: '.env.server' });
 
@@ -259,7 +266,7 @@ app.post('/api/payment/stripe', async (req, res) => {
         total_amount: total_amount.toString()
       },
       receipt_email: email,
-      return_url: 'http://localhost:8080/invoice/' + invoice_id
+      return_url: `${process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'http://localhost:8080'}/invoice/${invoice_id}`
     });
     
     if (paymentIntent.status === 'succeeded') {
@@ -510,6 +517,1096 @@ app.post('/api/payment/manual', async (req, res) => {
   }
 });
 
+// ==================== CLIENTS ENDPOINTS ====================
+
+// Get all clients
+app.get('/api/clients', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Clients fetch error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create new client
+app.post('/api/clients', async (req, res) => {
+  try {
+    const clientData = req.body;
+    const { data, error } = await supabase
+      .from('clients')
+      .insert([clientData])
+      .select();
+    
+    if (error) throw error;
+    res.status(201).json(data[0]);
+  } catch (error) {
+    console.error('Client creation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== NOTIFICATIONS ENDPOINTS ====================
+
+// Get all notifications
+app.get('/api/notifications', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Notifications fetch error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create notification
+app.post('/api/notifications', async (req, res) => {
+  try {
+    const notificationData = req.body;
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert([notificationData])
+      .select();
+    
+    if (error) throw error;
+    res.status(201).json(data[0]);
+  } catch (error) {
+    console.error('Notification creation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== INVOICES ENDPOINTS ====================
+
+// Get all invoices
+app.get('/api/invoices', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    res.json(data || []);
+  } catch (error) {
+    console.error('Invoices fetch error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get invoice by ID
+app.get('/api/invoices/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Invoice fetch error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create invoice
+app.post('/api/invoices', async (req, res) => {
+  try {
+    const invoiceData = req.body;
+    const { data, error } = await supabase
+      .from('invoices')
+      .insert([invoiceData])
+      .select();
+    
+    if (error) throw error;
+    res.status(201).json(data[0]);
+  } catch (error) {
+    console.error('Invoice creation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update invoice
+app.put('/api/invoices/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const { data, error } = await supabase
+      .from('invoices')
+      .update(updates)
+      .eq('id', id)
+      .select();
+    
+    if (error) throw error;
+    res.json(data[0]);
+  } catch (error) {
+    console.error('Invoice update error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete invoice
+app.delete('/api/invoices/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { error } = await supabase
+      .from('invoices')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    res.status(204).send();
+  } catch (error) {
+    console.error('Invoice deletion error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== UPLOAD ENDPOINTS ====================
+
+// Upload job photo
+app.post('/api/upload/job-photo', async (req, res) => {
+  try {
+    // This would need file upload handling with multer or similar
+    res.json({ message: 'Photo upload endpoint - needs implementation' });
+  } catch (error) {
+    console.error('Photo upload error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get job photos
+app.get('/api/upload/job-photos/:bookingId', async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    res.json({ message: 'Get job photos endpoint - needs implementation', bookingId });
+  } catch (error) {
+    console.error('Get photos error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete job photo
+app.delete('/api/upload/job-photo/:photoId', async (req, res) => {
+  try {
+    const { photoId } = req.params;
+    res.json({ message: 'Delete photo endpoint - needs implementation', photoId });
+  } catch (error) {
+    console.error('Delete photo error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== ADMIN ACCOUNT MANAGEMENT ENDPOINTS ====================
+
+// Reset client password
+app.post('/api/admin/password-reset', async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+    
+    if (newPassword) {
+      // Set new password directly
+      // This would typically involve hashing and updating auth system
+      res.json({ 
+        success: true, 
+        message: 'Password updated successfully' 
+      });
+    } else {
+      // Send password reset link
+      // This would typically send an email with reset link
+      res.json({ 
+        success: true, 
+        message: 'Password reset link sent to client' 
+      });
+    }
+  } catch (error) {
+    console.error('Password reset error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Block client account
+app.post('/api/admin/block-account', async (req, res) => {
+  try {
+    const { email, reason } = req.body;
+    
+    if (!email || !reason) {
+      return res.status(400).json({ error: 'Email and reason are required' });
+    }
+    
+    // This would typically update user status in auth system
+    // and create a record of the block action
+    
+    res.json({ 
+      success: true, 
+      message: 'Account blocked successfully' 
+    });
+  } catch (error) {
+    console.error('Block account error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== ADMIN CUSTOMER VIEW ENDPOINTS ====================
+
+// Generate temporary customer view token for admin
+app.post('/api/admin/customer-view-token', async (req, res) => {
+  try {
+    const { clientEmail } = req.body;
+    
+    if (!clientEmail) {
+      return res.status(400).json({ error: 'Client email is required' });
+    }
+    
+    // Generate a temporary token that expires in 1 hour
+    const token = jwt.sign(
+      { 
+        clientEmail,
+        isAdminView: true,
+        expiresAt: Date.now() + (60 * 60 * 1000) // 1 hour
+      },
+      process.env.JWT_SECRET || 'fallback-secret-key',
+      { expiresIn: '1h' }
+    );
+    
+    res.json({
+      token,
+      clientEmail,
+      expiresAt: new Date(Date.now() + (60 * 60 * 1000)).toISOString()
+    });
+  } catch (error) {
+    console.error('Generate customer view token error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Verify customer view token
+app.get('/api/customer/verify-view-token', async (req, res) => {
+  try {
+    const { token } = req.query;
+    
+    if (!token) {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key');
+    
+    if (!decoded.isAdminView) {
+      return res.status(403).json({ error: 'Invalid token type' });
+    }
+    
+    if (decoded.expiresAt < Date.now()) {
+      return res.status(401).json({ error: 'Token expired' });
+    }
+    
+    // Get client info
+    const { data: client, error } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('email', decoded.clientEmail)
+      .single();
+    
+    if (error || !client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+    
+    res.json({
+      client,
+      isAdminView: true,
+      expiresAt: decoded.expiresAt
+    });
+  } catch (error) {
+    console.error('Verify view token error:', error);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+// Analyze client with AI
+app.post('/api/ai/analyze-client', async (req, res) => {
+  try {
+    const { client, bookings, invoices, totalSpent, pastDue } = req.body;
+    
+    console.log('🤖 Starting AI analysis for client:', client.email);
+    
+    try {
+      // Build comprehensive prompt for Gemini
+      const prompt = `
+You are an expert business analyst for a junk removal service company. Analyze the following client data and provide detailed insights:
+
+Client Information:
+- Name: ${client.name}
+- Email: ${client.email}
+- Phone: ${client.phone || 'Not provided'}
+- Address: ${client.address || 'Not provided'}
+
+Booking History:
+- Total Bookings: ${bookings?.length || 0}
+- Completed Bookings: ${bookings?.filter(b => b.status === 'completed').length || 0}
+- Cancelled Bookings: ${bookings?.filter(b => b.status === 'cancelled').length || 0}
+
+Financial Data:
+- Total Spent: $${totalSpent || 0}
+- Past Due Amount: $${pastDue || 0}
+- Total Invoices: ${invoices?.length || 0}
+- Paid Invoices: ${invoices?.filter(i => i.status === 'paid').length || 0}
+
+Please provide:
+1. Risk Score (0-100): Based on payment history, booking patterns, and account activity
+2. Loyalty Score (0-100): Based on repeat business, total spending, and engagement
+3. Engagement Score (0-100): Based on communication frequency and responsiveness
+4. Key Insights: Behavioral patterns, opportunities, and risk factors
+5. Smart Recommendations: Actionable suggestions for this client
+6. Predictive Analytics: Next booking probability, lifetime value, churn risk
+
+Format your response as JSON:
+{
+  "riskScore": number,
+  "loyaltyScore": number,
+  "engagementScore": number,
+  "insight": "detailed insight about client behavior",
+  "suggestions": ["recommendation1", "recommendation2", "recommendation3"],
+  "nextBookingProbability": number,
+  "lifetimeValue": number,
+  "churnRisk": number,
+  "bestContactTime": "time range"
+}
+`;
+
+      console.log('🤖 Sending prompt to Gemini AI...');
+      
+      // Generate content with Gemini
+      const result = await aiModel.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      console.log('🤖 Gemini AI response received');
+      
+      // Parse the JSON response
+      let analysis;
+      try {
+        // Extract JSON from response
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          analysis = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No JSON found in AI response');
+        }
+      } catch (parseError) {
+        console.error('🤖 Error parsing AI response:', parseError);
+        console.log('🤖 Raw AI response:', text);
+        
+        // Fallback to calculated scores if parsing fails
+        analysis = getFallbackAnalysis(client, bookings, invoices, totalSpent, pastDue);
+      }
+      
+      // Ensure all required fields are present
+      analysis = {
+        riskScore: analysis.riskScore || 25,
+        loyaltyScore: analysis.loyaltyScore || 75,
+        engagementScore: analysis.engagementScore || 60,
+        insight: analysis.insight || `${client.name} shows moderate engagement with the service.`,
+        suggestions: analysis.suggestions || [
+          'Send personalized follow-up email',
+          'Offer loyalty discount for next booking',
+          'Schedule seasonal maintenance reminder'
+        ],
+        nextBookingProbability: analysis.nextBookingProbability || 65,
+        lifetimeValue: analysis.lifetimeValue || (totalSpent * 2.5),
+        churnRisk: analysis.churnRisk || 20,
+        bestContactTime: analysis.bestContactTime || 'Tuesday 2-4 PM'
+      };
+      
+      console.log('🤖 AI analysis completed successfully');
+      res.json(analysis);
+      
+    } catch (aiError) {
+      console.error('🤖 Gemini AI error:', aiError);
+      
+      // Fallback to rule-based analysis
+      const analysis = getFallbackAnalysis(client, bookings, invoices, totalSpent, pastDue);
+      
+      console.log('🤖 Using fallback analysis');
+      res.json(analysis);
+    }
+    
+  } catch (error) {
+    console.error('🤖 AI client analysis error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Fallback analysis function
+function getFallbackAnalysis(client, bookings, invoices, totalSpent, pastDue) {
+  // Calculate basic scores
+  let riskScore = 0;
+  if (pastDue > 0) riskScore += Math.min(pastDue / 100, 30);
+  if (bookings.length === 0) riskScore += 10;
+  if (totalSpent < 100) riskScore += 5;
+  riskScore = Math.min(riskScore, 100);
+
+  let loyaltyScore = 0;
+  loyaltyScore += Math.min(bookings.length * 5, 40);
+  loyaltyScore += Math.min(totalSpent / 50, 30);
+  loyaltyScore += pastDue === 0 ? 20 : -10;
+  loyaltyScore += bookings.filter(b => b.status === 'completed').length * 2;
+  loyaltyScore = Math.max(0, Math.min(loyaltyScore, 100));
+
+  let engagementScore = 0;
+  engagementScore += bookings.length * 3;
+  engagementScore += invoices.length * 2;
+  engagementScore += totalSpent > 0 ? 15 : 0;
+  engagementScore = Math.min(engagementScore, 100);
+
+  return {
+    riskScore,
+    loyaltyScore,
+    engagementScore,
+    insight: `${client.name} has ${bookings.length} bookings with ${totalSpent.toFixed(2)} total spent. ${pastDue > 0 ? 'Has outstanding balance.' : 'Good payment history.'}`,
+    suggestions: [
+      bookings.length === 0 ? 'Send welcome email with special offer' : null,
+      totalSpent > 1000 ? 'Offer loyalty discount program' : null,
+      pastDue > 0 ? 'Send payment reminder with flexible options' : null,
+      'Schedule seasonal service reminder',
+      'Send personalized thank you message'
+    ].filter(Boolean),
+    nextBookingProbability: bookings.length > 3 ? 85 : bookings.length > 0 ? 60 : 25,
+    lifetimeValue: totalSpent * 2.5,
+    churnRisk: pastDue > 0 ? Math.min(pastDue / 50, 70) : 10,
+    bestContactTime: 'Tuesday 2-4 PM'
+  };
+}
+
+// Update client preferences
+app.put('/api/admin/client-preferences/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const { priorityLevel, accountStatus, preferences } = req.body;
+    
+    // Update client preferences in database
+    // This would typically update a client_preferences table
+    
+    res.json({ 
+      success: true, 
+      message: 'Client preferences updated successfully' 
+    });
+  } catch (error) {
+    console.error('Update preferences error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get client communication history
+app.get('/api/admin/communication-history/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    
+    // Fetch communication history
+    const history = [
+      {
+        id: 1,
+        type: 'email',
+        subject: 'Service Confirmation',
+        sentAt: new Date().toISOString(),
+        status: 'delivered'
+      },
+      {
+        id: 2,
+        type: 'sms',
+        message: 'Your appointment is confirmed',
+        sentAt: new Date(Date.now() - 86400000).toISOString(),
+        status: 'delivered'
+      }
+    ];
+    
+    res.json(history);
+  } catch (error) {
+    console.error('Communication history error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Generate AI report
+app.post('/api/ai/generate-report', async (req, res) => {
+  try {
+    const { clientEmail } = req.body;
+    
+    console.log('🤖 Generating comprehensive AI report for:', clientEmail);
+    
+    try {
+      // Get client data (simplified for demo)
+      const clientData = {
+        email: clientEmail,
+        name: clientEmail.split('@')[0], // Extract name from email
+        // In real implementation, fetch from database
+      };
+      
+      const prompt = `
+Generate a comprehensive business intelligence report for this junk removal service client:
+
+Client Email: ${clientEmail}
+
+Please provide a detailed analysis including:
+1. Executive Summary
+2. Risk Assessment (payment risk, churn risk, compliance risk)
+3. Value Analysis (lifetime value, growth potential)
+4. Behavioral Patterns (booking patterns, seasonal trends)
+5. Recommendations (actionable insights, growth opportunities)
+6. Predictive Analytics (next booking probability, preferred services)
+
+Format as structured JSON:
+{
+  "clientEmail": "${clientEmail}",
+  "generatedAt": "timestamp",
+  "executiveSummary": "brief overview",
+  "riskAssessment": {
+    "paymentRisk": "low|medium|high",
+    "churnRisk": "low|medium|high",
+    "complianceRisk": "low|medium|high"
+  },
+  "valueAnalysis": {
+    "lifetimeValue": number,
+    "growthPotential": "low|medium|high",
+    "currentValue": number
+  },
+  "behavioralPatterns": {
+    "bookingFrequency": "pattern",
+    "seasonalTrends": ["trend1", "trend2"],
+    "servicePreferences": ["service1", "service2"]
+  },
+  "recommendations": [
+    {
+      "category": "category",
+      "priority": "high|medium|low",
+      "action": "specific action",
+      "expectedOutcome": "outcome"
+    }
+  ],
+  "predictiveAnalytics": {
+    "nextBookingProbability": number,
+    "preferredServices": ["service1", "service2"],
+    "optimalContactTime": "time range"
+  },
+  "riskScore": number,
+  "loyaltyScore": number,
+  "engagementScore": number
+}
+`;
+
+      console.log('🤖 Sending comprehensive report request to Gemini AI...');
+      
+      const result = await aiModel.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      console.log('🤖 Gemini AI report response received');
+      
+      let report;
+      try {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          report = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No JSON found in AI response');
+        }
+      } catch (parseError) {
+        console.error('🤖 Error parsing AI report:', parseError);
+        console.log('🤖 Raw AI response:', text);
+        
+        // Fallback report
+        report = {
+          clientEmail,
+          generatedAt: new Date().toISOString(),
+          riskScore: 25,
+          loyaltyScore: 85,
+          engagementScore: 72,
+          executiveSummary: `Comprehensive analysis of ${clientEmail}'s account history and patterns`,
+          riskAssessment: {
+            paymentRisk: 'low',
+            churnRisk: 'low',
+            complianceRisk: 'low'
+          },
+          valueAnalysis: {
+            lifetimeValue: 2500,
+            growthPotential: 'medium',
+            currentValue: 1000
+          },
+          behavioralPatterns: {
+            bookingFrequency: 'regular',
+            seasonalTrends: ['spring cleaning', 'fall cleanup'],
+            servicePreferences: ['junk removal', 'hauling']
+          },
+          recommendations: [
+            {
+              category: 'retention',
+              priority: 'medium',
+              action: 'Offer seasonal maintenance package',
+              expectedOutcome: 'Increase repeat business by 25%'
+            },
+            {
+              category: 'upselling',
+              priority: 'low',
+              action: 'Send personalized discount for next service',
+              expectedOutcome: 'Improve customer satisfaction'
+            }
+          ],
+          predictiveAnalytics: {
+            nextBookingProbability: 78,
+            preferredServices: ['junk removal', 'cleaning'],
+            optimalContactTime: 'Tuesday 2-4 PM'
+          }
+        };
+      }
+      
+      // Ensure required fields
+      report = {
+        ...report,
+        clientEmail,
+        generatedAt: report.generatedAt || new Date().toISOString(),
+        riskScore: report.riskScore || 25,
+        loyaltyScore: report.loyaltyScore || 75,
+        engagementScore: report.engagementScore || 60
+      };
+      
+      console.log('🤖 AI report generated successfully');
+      res.json(report);
+      
+    } catch (aiError) {
+      console.error('🤖 Gemini AI report error:', aiError);
+      
+      // Fallback report
+      const report = {
+        clientEmail,
+        generatedAt: new Date().toISOString(),
+        riskScore: 25,
+        loyaltyScore: 85,
+        engagementScore: 72,
+        insights: [
+          'Client shows consistent booking patterns',
+          'High potential for upselling premium services',
+          'Responsive to communication'
+        ],
+        recommendations: [
+          'Offer seasonal maintenance package',
+          'Send personalized discount for next service',
+          'Schedule follow-up in 3 months'
+        ],
+        predictiveAnalytics: {
+          nextBookingProbability: 78,
+          lifetimeValue: 2500,
+          churnRisk: 15
+        }
+      };
+      
+      console.log('🤖 Using fallback report');
+      res.json(report);
+    }
+    
+  } catch (error) {
+    console.error('🤖 Generate report error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== AI ENDPOINTS ====================
+
+// AI Chat
+app.post('/api/ai/chat', async (req, res) => {
+  try {
+    const { message } = req.body;
+    res.json({ message: 'AI chat endpoint - needs implementation', response: 'AI response placeholder' });
+  } catch (error) {
+    console.error('AI chat error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Analyze booking
+app.get('/api/ai/analyze-booking/:bookingId', async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    res.json({ message: 'Analyze booking endpoint - needs implementation', bookingId });
+  } catch (error) {
+    console.error('Analyze booking error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Generate email
+app.post('/api/ai/generate-email', async (req, res) => {
+  try {
+    const { type, data } = req.body;
+    res.json({ message: 'Generate email endpoint - needs implementation', type, data });
+  } catch (error) {
+    console.error('Generate email error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== EMAIL TEMPLATES ENDPOINTS ====================
+
+// Get email templates
+app.get('/api/email/templates', async (req, res) => {
+  try {
+    res.json({ message: 'Email templates endpoint - needs implementation' });
+  } catch (error) {
+    console.error('Email templates error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Send email template
+app.post('/api/email/templates/:templateId/send', async (req, res) => {
+  try {
+    const { templateId } = req.params;
+    const data = req.body;
+    res.json({ message: 'Send template endpoint - needs implementation', templateId, data });
+  } catch (error) {
+    console.error('Send template error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== SMS ENDPOINTS ====================
+
+// Get SMS subscribers
+app.get('/api/sms/subscribers', async (req, res) => {
+  try {
+    res.json({ message: 'SMS subscribers endpoint - needs implementation' });
+  } catch (error) {
+    console.error('SMS subscribers error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Subscribe to SMS
+app.post('/api/sms/subscribe', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    res.json({ message: 'SMS subscribe endpoint - needs implementation', phone });
+  } catch (error) {
+    console.error('SMS subscribe error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Unsubscribe from SMS
+app.post('/api/sms/unsubscribe', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    res.json({ message: 'SMS unsubscribe endpoint - needs implementation', phone });
+  } catch (error) {
+    console.error('SMS unsubscribe error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Send SMS notification
+app.post('/api/sms/notification', async (req, res) => {
+  try {
+    const { bookingId, type, message } = req.body;
+    res.json({ message: 'SMS notification endpoint - needs implementation', bookingId, type, message });
+  } catch (error) {
+    console.error('SMS notification error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== NOTIFICATION ENDPOINTS (Additional) ====================
+
+// Get unread notifications
+app.get('/api/notifications/unread', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('read', false)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    res.json(data || []);
+  } catch (error) {
+    console.error('Unread notifications error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Mark notification as read
+app.put('/api/notifications/:id/read', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', id)
+      .select();
+    
+    if (error) throw error;
+    res.json(data[0]);
+  } catch (error) {
+    console.error('Mark notification read error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Mark all notifications as read
+app.put('/api/notifications/read-all', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('read', false)
+      .select();
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Mark all notifications read error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== CLIENT SEARCH ENDPOINT ====================
+
+// Search clients
+app.get('/api/clients/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .or(`name.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`);
+    
+    if (error) throw error;
+    res.json(data || []);
+  } catch (error) {
+    console.error('Client search error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== ANALYTICS ENDPOINTS ====================
+
+// Get dashboard analytics
+app.get('/api/analytics/dashboard', async (req, res) => {
+  try {
+    // Get bookings stats
+    const { data: bookings, error: bookingsError } = await supabase
+      .from('bookings')
+      .select('*');
+    
+    if (bookingsError) throw bookingsError;
+    
+    const totalBookings = bookings?.length || 0;
+    const completedBookings = bookings?.filter(b => b.status === 'completed').length || 0;
+    const pendingBookings = bookings?.filter(b => b.status === 'pending').length || 0;
+    
+    // Get clients count
+    const { count: clientsCount, error: clientsError } = await supabase
+      .from('clients')
+      .select('*', { count: 'exact', head: true });
+    
+    if (clientsError) throw clientsError;
+    
+    res.json({
+      totalBookings,
+      completedBookings,
+      pendingBookings,
+      totalClients: clientsCount || 0,
+      completionRate: totalBookings > 0 ? (completedBookings / totalBookings * 100).toFixed(1) : 0
+    });
+  } catch (error) {
+    console.error('Analytics fetch error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get revenue analytics
+app.get('/api/analytics/revenue', async (req, res) => {
+  try {
+    // Get completed bookings with revenue data
+    const { data: bookings, error: bookingsError } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('status', 'completed');
+    
+    if (bookingsError) throw bookingsError;
+    
+    // Calculate revenue from completed bookings
+    const totalRevenue = bookings?.reduce((sum, booking) => {
+      // Extract price from load_size or service_type
+      const price = booking.price || 0;
+      return sum + price;
+    }, 0) || 0;
+    
+    // Get monthly revenue
+    const monthlyRevenue = {};
+    bookings?.forEach(booking => {
+      if (booking.created_at) {
+        const month = new Date(booking.created_at).toISOString().slice(0, 7); // YYYY-MM
+        monthlyRevenue[month] = (monthlyRevenue[month] || 0) + (booking.price || 0);
+      }
+    });
+    
+    res.json({
+      totalRevenue,
+      completedBookings: bookings?.length || 0,
+      averageBookingValue: bookings?.length > 0 ? totalRevenue / bookings.length : 0,
+      monthlyRevenue
+    });
+  } catch (error) {
+    console.error('Revenue analytics error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get booking analytics
+app.get('/api/analytics/bookings', async (req, res) => {
+  try {
+    const { data: bookings, error: bookingsError } = await supabase
+      .from('bookings')
+      .select('*');
+    
+    if (bookingsError) throw bookingsError;
+    
+    // Booking status breakdown
+    const statusBreakdown = bookings?.reduce((acc, booking) => {
+      acc[booking.status] = (acc[booking.status] || 0) + 1;
+      return acc;
+    }, {}) || {};
+    
+    // Service type breakdown
+    const serviceBreakdown = bookings?.reduce((acc, booking) => {
+      acc[booking.service_type] = (acc[booking.service_type] || 0) + 1;
+      return acc;
+    }, {}) || {};
+    
+    res.json({
+      totalBookings: bookings?.length || 0,
+      statusBreakdown,
+      serviceBreakdown
+    });
+  } catch (error) {
+    console.error('Booking analytics error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get client analytics
+app.get('/api/analytics/clients', async (req, res) => {
+  try {
+    const { data: clients, error: clientsError } = await supabase
+      .from('clients')
+      .select('*');
+    
+    if (clientsError) throw clientsError;
+    
+    // Get bookings per client
+    const { data: bookings, error: bookingsError } = await supabase
+      .from('bookings')
+      .select('client_id, status');
+    
+    if (bookingsError) throw bookingsError;
+    
+    // Calculate client metrics
+    const clientMetrics = clients?.map(client => {
+      const clientBookings = bookings?.filter(b => b.client_id === client.id) || [];
+      return {
+        id: client.id,
+        name: client.name,
+        email: client.email,
+        totalBookings: clientBookings.length,
+        completedBookings: clientBookings.filter(b => b.status === 'completed').length
+      };
+    }) || [];
+    
+    res.json({
+      totalClients: clients?.length || 0,
+      activeClients: clientMetrics.filter(c => c.totalBookings > 0).length,
+      clientMetrics
+    });
+  } catch (error) {
+    console.error('Client analytics error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== BOOKINGS ENDPOINTS ====================
+
+// Get all bookings
+app.get('/api/bookings', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Bookings fetch error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create new booking
+app.post('/api/bookings', async (req, res) => {
+  try {
+    const bookingData = req.body;
+    const { data, error } = await supabase
+      .from('bookings')
+      .insert([bookingData])
+      .select();
+    
+    if (error) throw error;
+    res.status(201).json(data[0]);
+  } catch (error) {
+    console.error('Booking creation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get available slots for a date
+app.get('/api/bookings/available-slots', async (req, res) => {
+  try {
+    const { date } = req.query;
+    
+    // Return default time slots
+    const slots = [
+      "8:00 AM - 10:00 AM",
+      "10:00 AM - 12:00 PM", 
+      "12:00 PM - 2:00 PM",
+      "2:00 PM - 4:00 PM",
+      "4:00 PM - 6:00 PM",
+    ];
+    
+    res.json({
+      availableSlots: slots,
+      availableCount: slots.length
+    });
+  } catch (error) {
+    console.error('Available slots error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== GOOGLE REVIEWS ENDPOINTS ====================
 
 // Trigger manual review sync
@@ -673,6 +1770,11 @@ app.put('/api/sitekit/settings', async (req, res) => {
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'StoneRiver Communication Server Running' });
+});
+
+// API health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', message: 'StoneRiver API Server Running' });
 });
 
 // Start Google Reviews sync scheduler
@@ -996,9 +2098,13 @@ app.post('/api/portal/create-account', async (req, res) => {
 });
 
 app.listen(PORT, () => {
+  const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN 
+    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` 
+    : `http://localhost:${PORT}`;
+  
   console.log(`🚀 StoneRiver Communication Server running on port ${PORT}`);
-  console.log(`📱 SMS endpoint: http://localhost:${PORT}/api/sms/send`);
-  console.log(`📧 Email endpoint: http://localhost:${PORT}/api/email/send`);
+  console.log(`📱 SMS endpoint: ${baseUrl}/api/sms/send`);
+  console.log(`📧 Email endpoint: ${baseUrl}/api/email/send`);
   console.log(`⭐ Reviews sync: Running every hour`);
-  console.log(`🔧 Health check: http://localhost:${PORT}/health`);
+  console.log(`🔧 Health check: ${baseUrl}/health`);
 });

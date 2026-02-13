@@ -5,35 +5,53 @@ import { Lock, User, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 const AdminLogin = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Temporary hardcoded credentials
-    if (username === "admin" && password === "admin") {
-      localStorage.setItem("adminAuth", "true");
-      toast({
-        title: "Success!",
-        description: "Welcome to the admin panel",
-      });
-      navigate("/admin/panel");
-    } else {
+    try {
+      // Simple hardcoded admin credentials
+      if (email === "jameshewitt312@gmail.com" && password === "Daniel2002#") {
+        // Store admin session
+        localStorage.setItem("adminAuth", JSON.stringify({
+          id: "superuser-1",
+          email: email,
+          role: "superuser",
+          isAuthenticated: true
+        }));
+
+        toast({
+          title: "Success!",
+          description: "Welcome back, Superuser!",
+        });
+        
+        navigate("/admin/panel");
+      } else {
+        toast({
+          title: "Error",
+          description: "Invalid email or password",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error('Admin login error:', error);
       toast({
         title: "Error",
-        description: "Invalid username or password",
+        description: error.message || "Login failed. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -64,15 +82,15 @@ const AdminLogin = () => {
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2 uppercase">
-                Username
+                Email
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter email"
                   className="pl-10 h-12 text-base"
                   required
                 />
@@ -115,20 +133,12 @@ const AdminLogin = () => {
             </Button>
           </form>
 
-          {/* Temp Credentials Notice */}
-          <div className="mt-8 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl">
-            <p className="text-xs text-yellow-800 font-semibold text-center">
-              ⚠️ TEMPORARY CREDENTIALS<br />
-              Username: <span className="font-black">admin</span> | Password: <span className="font-black">admin</span>
-            </p>
+          {/* Back to Home */}
+          <div className="text-center mt-6">
+            <a href="/" className="text-white hover:text-primary transition-colors font-semibold">
+              ← Back to Home
+            </a>
           </div>
-        </div>
-
-        {/* Back to Home */}
-        <div className="text-center mt-6">
-          <a href="/" className="text-white hover:text-primary transition-colors font-semibold">
-            ← Back to Home
-          </a>
         </div>
       </motion.div>
     </div>

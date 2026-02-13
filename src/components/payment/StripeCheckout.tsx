@@ -4,6 +4,7 @@ import { CreditCard, Lock, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from '@/lib/config';
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
@@ -66,9 +67,8 @@ const CheckoutForm = ({ amount, processingFee, totalAmount, invoiceId, onSuccess
       console.log('Payment method created:', paymentMethod.id);
 
       // Call backend to create payment intent
-      const response = await fetch('http://localhost:3001/api/payment/stripe', {
+      const result = await apiFetch('/api/payment/stripe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: amount,
           processing_fee: processingFee,
@@ -80,8 +80,6 @@ const CheckoutForm = ({ amount, processingFee, totalAmount, invoiceId, onSuccess
           zip: zip
         })
       });
-
-      const result = await response.json();
       console.log('Backend response:', result);
 
       if (result.success) {

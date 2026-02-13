@@ -1,3 +1,5 @@
+import { apiFetch } from './config';
+
 // Email Service using Brevo SMTP
 // This service handles real email sending via Brevo SMTP
 
@@ -29,11 +31,8 @@ export const sendBrevoEmail = async ({
     }
 
     // Send email via backend API
-    const response = await fetch('http://localhost:3001/api/email/send', {
+    const response = await apiFetch('/api/email/send', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({
         to,
         subject,
@@ -42,12 +41,7 @@ export const sendBrevoEmail = async ({
       })
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(errorData.error || `Server error: ${response.status}`);
-    }
-
-    const result = await response.json();
+    const result = response;
     console.log('✅ Email sent successfully via Brevo:', result);
     
     return {

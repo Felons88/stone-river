@@ -9,6 +9,7 @@ import SMSComposer from "./SMSComposer";
 import EnhancedEmailComposer from "./EnhancedEmailComposer";
 import BookingComposer from "./BookingComposer";
 import ClientJobsView from "./ClientJobsView";
+import ClientAccountDropdown from "@/components/ClientAccountDropdown";
 
 const ClientsManager = () => {
   const { toast } = useToast();
@@ -359,7 +360,7 @@ const ClientsManager = () => {
                   <Button
                     onClick={async () => {
                       try {
-                        const response = await fetch('http://localhost:3001/api/portal/create-account', {
+                        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://stone-river-production.up.railway.app'}/api/portal/create-account`, {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
@@ -397,7 +398,7 @@ const ClientsManager = () => {
                     Create Portal
                   </Button>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-3 mb-3">
                   <Button
                     onClick={() => handleSendSMS(viewingClient)}
                     className="bg-green-600 hover:bg-green-700 font-bold"
@@ -419,6 +420,10 @@ const ClientsManager = () => {
                     <Calendar className="w-4 h-4 mr-2" />
                     Booking
                   </Button>
+                </div>
+                {/* Account Settings Dropdown */}
+                <div className="flex justify-center">
+                  <ClientAccountDropdown client={viewingClient} />
                 </div>
               </div>
 
@@ -749,12 +754,41 @@ const ClientsManager = () => {
             <ClientJobsView
               clientEmail={viewingClient.email}
               clientName={viewingClient.name}
-              onViewAsCustomer={() => {
-                // TODO: Implement customer portal view
-                toast({
-                  title: 'Coming Soon',
-                  description: 'Customer portal view will be available soon',
-                });
+              onViewAsCustomer={async () => {
+                try {
+                  // Generate customer view token
+                  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://stone-river-production.up.railway.app'}/api/admin/customer-view-token`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      clientEmail: viewingClient.email
+                    })
+                  });
+
+                  const data = await response.json();
+                  
+                  if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate customer view token');
+                  }
+
+                  // Open customer portal in new tab with token
+                  const portalUrl = `${window.location.origin}/customer-portal?view_token=${data.token}`;
+                  window.open(portalUrl, '_blank');
+                  
+                  toast({
+                    title: 'Customer Portal Opened',
+                    description: `Viewing ${viewingClient.name}'s portal in new tab. Token expires in 1 hour.`,
+                  });
+                } catch (error: any) {
+                  console.error('View as customer error:', error);
+                  toast({
+                    title: 'Error',
+                    description: error.message || 'Failed to open customer portal',
+                    variant: 'destructive',
+                  });
+                }
               }}
             />
           </motion.div>

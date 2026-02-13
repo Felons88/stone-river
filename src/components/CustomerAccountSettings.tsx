@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
+import { apiFetch } from '@/lib/config';
 
 interface CustomerAccountSettingsProps {
   customerEmail: string;
@@ -144,9 +145,8 @@ const CustomerAccountSettings = ({ customerEmail }: CustomerAccountSettingsProps
 
     try {
       // Call backend API to change password
-      const response = await fetch('http://localhost:3001/api/portal/change-password', {
+      const response = await apiFetch('/api/portal/change-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: customerEmail,
           currentPassword: passwordForm.currentPassword,
@@ -154,7 +154,7 @@ const CustomerAccountSettings = ({ customerEmail }: CustomerAccountSettingsProps
         }),
       });
 
-      const result = await response.json();
+      const result = response;
 
       if (result.success) {
         toast({

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { apiFetch } from './config';
 
 // API Service Layer for all data operations
 
@@ -1005,36 +1006,30 @@ export const api = {
     },
 
     syncNow: async () => {
-      const response = await fetch('http://localhost:3001/api/reviews/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+      const result = await apiFetch('/api/reviews/sync', {
+        method: 'POST'
       });
-      const result = await response.json();
       if (!result.success) throw new Error(result.error);
       return result;
     },
 
     getSettings: async () => {
-      const response = await fetch('http://localhost:3001/api/reviews/settings');
-      const result = await response.json();
+      const result = await apiFetch('/api/reviews/settings');
       if (!result.success) throw new Error(result.error);
       return result.settings;
     },
 
     updateSettings: async (settings: any) => {
-      const response = await fetch('http://localhost:3001/api/reviews/settings', {
+      const result = await apiFetch('/api/reviews/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
       });
-      const result = await response.json();
       if (!result.success) throw new Error(result.error);
       return result.settings;
     },
 
     getSyncHistory: async () => {
-      const response = await fetch('http://localhost:3001/api/reviews/sync-history');
-      const result = await response.json();
+      const result = await apiFetch('/api/reviews/sync-history');
       if (!result.success) throw new Error(result.error);
       return result.history;
     },
