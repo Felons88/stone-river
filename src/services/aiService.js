@@ -1,11 +1,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Initialize Gemini AI
-const genAI = new GoogleGenerativeAI('AIzaSyCfwsggzyCCEzXG-kvEhut1oThptWZbeuk');
-const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
 class AIService {
   constructor() {
+    this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyCfwsggzyCCEzXG-kvEhut1oThptWZbeuk');
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     this.cache = new Map();
     this.cacheExpiry = 24 * 60 * 60 * 1000; // 24 hours
   }
@@ -20,7 +19,7 @@ class AIService {
       }
 
       const prompt = this.buildClientAnalysisPrompt(clientData);
-      const result = await model.generateContent(prompt);
+      const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
 
@@ -40,7 +39,7 @@ class AIService {
   async generateComprehensiveReport(clientData) {
     try {
       const prompt = this.buildComprehensiveReportPrompt(clientData);
-      const result = await model.generateContent(prompt);
+      const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
 
@@ -55,7 +54,7 @@ class AIService {
   async generateRecommendations(clientData) {
     try {
       const prompt = this.buildRecommendationsPrompt(clientData);
-      const result = await model.generateContent(prompt);
+      const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
 
@@ -70,7 +69,7 @@ class AIService {
   async generatePredictions(clientData) {
     try {
       const prompt = this.buildPredictionsPrompt(clientData);
-      const result = await model.generateContent(prompt);
+      const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
 
