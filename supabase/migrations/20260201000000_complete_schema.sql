@@ -89,8 +89,10 @@ CREATE TABLE IF NOT EXISTS contact_forms (
   name TEXT NOT NULL,
   email TEXT NOT NULL,
   phone TEXT,
+  address TEXT,
   service_type TEXT,
-  message TEXT NOT NULL,
+  description TEXT,
+  message TEXT,
   status TEXT DEFAULT 'new' CHECK (status IN ('new', 'in_progress', 'resolved', 'archived')),
   category TEXT,
   sentiment TEXT,
@@ -146,6 +148,8 @@ CREATE INDEX IF NOT EXISTS idx_referrals_status ON referrals(status);
 
 CREATE INDEX IF NOT EXISTS idx_contact_forms_status ON contact_forms(status);
 CREATE INDEX IF NOT EXISTS idx_contact_forms_created ON contact_forms(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_contact_forms_address ON contact_forms(address);
+CREATE INDEX IF NOT EXISTS idx_contact_forms_description ON contact_forms(description);
 
 CREATE INDEX IF NOT EXISTS idx_sms_notifications_booking ON sms_notifications(booking_id);
 CREATE INDEX IF NOT EXISTS idx_sms_notifications_status ON sms_notifications(status);

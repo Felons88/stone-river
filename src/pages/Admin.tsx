@@ -67,22 +67,32 @@ const Admin = () => {
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem('adminAuth');
+    console.log('Admin auth check:', isAuthenticated);
     if (isAuthenticated) {
+      console.log('Admin authenticated, fetching data...');
       fetchContacts();
       fetchPhotos();
+    } else {
+      console.log('Admin not authenticated, redirecting...');
     }
   }, []);
 
   const fetchContacts = async () => {
+    console.log('Fetching contacts...');
     try {
       const { data, error } = await supabase
         .from('contact_forms')
         .select('*')
         .order('created_at', { ascending: false });
 
+      console.log('Contacts data:', data);
+      console.log('Contacts error:', error);
+
       if (error) throw error;
       setContacts(data || []);
+      console.log('Contacts set:', data || []);
     } catch (error) {
+      console.error('Fetch contacts error:', error);
       toast({
         title: "Error",
         description: "Failed to fetch contacts",
@@ -213,6 +223,8 @@ const Admin = () => {
     
     const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
     
+    console.log('Filtering contact:', contact.name, 'matchesSearch:', matchesSearch, 'matchesStatus:', matchesStatus);
+    
     return matchesSearch && matchesStatus;
   });
 
@@ -241,6 +253,10 @@ const Admin = () => {
     contacted: contacts.filter(c => c.status === 'contacted').length,
     completed: contacts.filter(c => c.status === 'completed').length,
   };
+
+  console.log('Contacts stats:', stats);
+  console.log('All contacts:', contacts);
+  console.log('Admin component rendering. Active tab:', activeTab, 'Contacts count:', contacts.length, 'Loading:', loading);
 
   return (
     <div className="min-h-screen bg-gray-50">

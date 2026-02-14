@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import TrustMarquee from "@/components/TrustMarquee";
 import ServiceGrid from "@/components/ServiceGrid";
 import Testimonials from "@/components/Testimonials";
+import CustomerMetrics from "@/components/CustomerMetrics";
 import StatsSection from "@/components/StatsSection";
 import EnvironmentalImpact from "@/components/EnvironmentalImpact";
 import LiveChat from "@/components/LiveChat";
@@ -15,6 +16,7 @@ const Index = () => {
       <Hero />
       <TrustMarquee />
       <ServiceGrid />
+      <CustomerMetrics />
       <Testimonials />
       <StatsSection />
       <EnvironmentalImpact />

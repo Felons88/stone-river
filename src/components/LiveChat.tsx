@@ -1,85 +1,121 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Minimize2 } from "lucide-react";
+import { MessageCircle, X, Send, Minimize2, Phone, Calendar, DollarSign, MapPin, Clock, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import AIService from "@/services/aiService";
 
 const LiveChat = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState([
     {
       id: 1,
       sender: "bot",
-      text: "Hi! 👋 Thanks for contacting StoneRiver Junk Removal. How can we help you today?",
+      text: "👋 Hi! Welcome to StoneRiver Junk Removal! I'm your AI assistant, here to help with all your junk removal needs. What can I help you with today?",
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
   const [inputMessage, setInputMessage] = useState("");
+  const aiService = new AIService();
 
   const quickReplies = [
-    "Get a quote",
-    "Check service area",
-    "Schedule pickup",
-    "Pricing info"
+    "💰 Get a quote",
+    "📍 Service areas", 
+    "📅 Schedule pickup",
+    "🚚 Services offered",
+    "⏰ Same-day service",
+    "📞 Call us"
   ];
 
-  const handleSendMessage = () => {
+  // Real AI-powered response
+  const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
-    const newMessage = {
+    const userMessage = {
       id: messages.length + 1,
       sender: "user",
       text: inputMessage,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    setMessages([...messages, newMessage]);
+    setMessages([...messages, userMessage]);
+    const currentInput = inputMessage;
     setInputMessage("");
+    setIsTyping(true);
 
-    // Auto-response simulation
-    setTimeout(() => {
-      const autoResponse = {
+    try {
+      console.log('Calling AI with message:', currentInput);
+      
+      // Get conversation history for context
+      const conversationHistory = messages.slice(-5); // Last 5 messages
+      console.log('Conversation history:', conversationHistory);
+      
+      const aiResponse = await aiService.generateChatResponse(currentInput, conversationHistory);
+      console.log('AI Response:', aiResponse);
+      
+      const botMessage = {
         id: messages.length + 2,
         sender: "bot",
-        text: "Thanks for your message! A team member will respond shortly. For immediate assistance, call us at (612) 685-4696.",
+        text: aiResponse,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
-      setMessages(prev => [...prev, autoResponse]);
-    }, 1000);
+      
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('AI chat error:', error);
+      console.log('Error details:', error.message);
+      
+      // Fallback response
+      const fallbackMessage = {
+        id: messages.length + 2,
+        sender: "bot",
+        text: `🚚 I'm here to help with junk removal! I can assist with quotes, scheduling, service areas, and more. For immediate help, call (612) 685-4696!\n\n(Error: ${error.message})`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, fallbackMessage]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
-  const handleQuickReply = (reply: string) => {
-    const newMessage = {
+  // Enhanced quick replies with AI
+  const handleQuickReply = async (reply: string) => {
+    const userMessage = {
       id: messages.length + 1,
       sender: "user",
       text: reply,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    setMessages([...messages, newMessage]);
+    setMessages([...messages, userMessage]);
+    setIsTyping(true);
 
-    // Context-aware responses
-    setTimeout(() => {
-      let responseText = "";
-      if (reply.includes("quote")) {
-        responseText = "I'd be happy to help you get a quote! You can use our instant calculator at /estimate or fill out our quote form at /quote. What type of service do you need?";
-      } else if (reply.includes("service area")) {
-        responseText = "We serve Central Minnesota including St. Cloud and surrounding areas. Check if we're in your area at /service-area or call (612) 685-4696!";
-      } else if (reply.includes("Schedule")) {
-        responseText = "Great! You can book online at /booking or call us at (612) 685-4696 for same-day service. What date works best for you?";
-      } else if (reply.includes("Pricing")) {
-        responseText = "Our pricing starts at $150 for 1/4 truck load. Prices vary by load size. Visit /pricing for full details or use our calculator at /estimate!";
-      }
-
-      const autoResponse = {
+    try {
+      const conversationHistory = messages.slice(-5);
+      const aiResponse = await aiService.generateChatResponse(reply, conversationHistory);
+      
+      const botMessage = {
         id: messages.length + 2,
         sender: "bot",
-        text: responseText,
+        text: aiResponse,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
-      setMessages(prev => [...prev, autoResponse]);
-    }, 800);
+      
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('AI quick reply error:', error);
+      const fallbackMessage = {
+        id: messages.length + 2,
+        sender: "bot",
+        text: "🚚 I'd be happy to help with that! For immediate assistance, call (612) 685-4696.",
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, fallbackMessage]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (
@@ -123,10 +159,12 @@ const LiveChat = () => {
                   <MessageCircle className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-black text-white">StoneRiver Chat</h3>
+                  <h3 className="font-black text-white">StoneRiver AI Assistant</h3>
                   <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-green-400 rounded-full" />
-                    <span className="text-xs text-white/90 font-semibold">Online</span>
+                    <div className={`w-2 h-2 rounded-full ${isTyping ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`} />
+                    <span className="text-xs text-white/90 font-semibold">
+                      {isTyping ? 'AI Thinking...' : 'AI Online'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -162,7 +200,7 @@ const LiveChat = () => {
                             : 'bg-white border-2 border-gray-200 text-gray-900'
                         }`}
                       >
-                        <p className="text-sm leading-relaxed">{message.text}</p>
+                        <p className="text-sm leading-relaxed whitespace-pre-line">{message.text}</p>
                         <p className={`text-xs mt-1 ${
                           message.sender === 'user' ? 'text-white/70' : 'text-gray-500'
                         }`}>
@@ -171,6 +209,22 @@ const LiveChat = () => {
                       </div>
                     </div>
                   ))}
+                  
+                  {/* Typing Indicator */}
+                  {isTyping && (
+                    <div className="flex justify-start">
+                      <div className="bg-white border-2 border-gray-200 rounded-2xl px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-1">
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                          </div>
+                          <span className="text-xs text-gray-500">Typing...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Quick Replies */}
@@ -193,10 +247,10 @@ const LiveChat = () => {
 
                 {/* Input */}
                 <div className="p-4 bg-white border-t-2 border-gray-100">
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mb-3">
                     <Input
                       type="text"
-                      placeholder="Type your message..."
+                      placeholder="Ask about junk removal..."
                       value={inputMessage}
                       onChange={(e) => setInputMessage(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
@@ -209,8 +263,25 @@ const LiveChat = () => {
                       <Send className="w-5 h-5" />
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2 text-center">
-                    Typically replies in minutes
+                  
+                  {/* Call to Action */}
+                  <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-3 mb-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-green-600" />
+                        <span className="text-sm font-semibold text-gray-700">Need immediate help?</span>
+                      </div>
+                      <a
+                        href="tel:6126854696"
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-xs font-bold transition-colors"
+                      >
+                        Call Now
+                      </a>
+                    </div>
+                  </div>
+                  
+                  <p className="text-xs text-gray-500 text-center">
+                    🤖 Powered by Google AI • 🚚 Junk removal expert • Typically replies in seconds
                   </p>
                 </div>
               </>

@@ -17,8 +17,8 @@ import { startQuoteFollowUpScheduler } from './quote-follow-up.js';
 import { startEmailAutomationScheduler, sendBookingConfirmation, sendOnTheWayNotification, sendRunningLateNotification, sendJobCompleteNotification } from './email-automation-triggers.js';
 
 // Initialize Google Generative AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const aiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+const genAI = new GoogleGenerativeAI('AIzaSyA0L3PTf4i0xMkBwTWjDLOaI0PBj5RPZo0');
+const aiModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
 dotenv.config({ path: '.env.server' });
 

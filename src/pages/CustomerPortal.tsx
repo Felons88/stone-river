@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Calendar, FileText, CreditCard, LogOut, Settings, Gift } from 'lucide-react';
+import { User, Calendar, FileText, CreditCard, LogOut, Settings, Gift, TrendingUp, Clock, CheckCircle, AlertCircle, Star, Phone, Mail, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
@@ -116,14 +116,23 @@ const CustomerPortal = () => {
     { key: 'settings', label: 'Settings', icon: Settings },
   ];
 
+  // Calculate dashboard stats
+  const totalSpent = invoices.reduce((sum, inv) => inv.status === 'paid' ? sum + parseFloat(inv.total_amount || 0) : sum, 0);
+  const pendingInvoices = invoices.filter(inv => inv.status === 'pending' || inv.status === 'unpaid').length;
+  const upcomingBookings = bookings.filter(b => b.status === 'confirmed' && new Date(b.preferred_date) > new Date()).length;
+  const completedBookings = bookings.filter(b => b.status === 'completed').length;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b-2 border-gray-200">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Enhanced Header */}
+      <div className="bg-white border-b-2 border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-black text-gray-900">Customer Portal</h1>
+              <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                <User className="w-6 h-6 text-primary" />
+                Customer Portal
+              </h1>
               {user?.isAdminView && (
                 <div className="flex items-center gap-2 mt-1">
                   <div className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-bold">
@@ -136,7 +145,10 @@ const CustomerPortal = () => {
               )}
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-gray-600">{user?.email}</span>
+              <div className="text-right">
+                <div className="text-sm text-gray-500">Welcome back,</div>
+                <div className="font-bold text-gray-900">{user?.name || user?.email}</div>
+              </div>
               <Button onClick={handleLogout} variant="outline" size="sm">
                 <LogOut className="w-4 h-4 mr-2" />
                 {user?.isAdminView ? 'Close View' : 'Logout'}
@@ -148,9 +160,9 @@ const CustomerPortal = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
+          {/* Enhanced Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl border-2 border-gray-200 p-4 space-y-2">
+            <div className="bg-white rounded-2xl border-2 border-gray-200 p-4 space-y-2 shadow-lg">
               {tabs.map((tab) => {
                 const TabIcon = tab.icon;
                 return (
@@ -159,55 +171,155 @@ const CustomerPortal = () => {
                     onClick={() => setActiveTab(tab.key)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${
                       activeTab === tab.key
-                        ? 'bg-primary text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'bg-primary text-white shadow-md'
+                        : 'text-gray-700 hover:bg-gray-100 hover:border-gray-300'
                     }`}
                   >
                     <TabIcon className="w-5 h-5" />
                     {tab.label}
+                    {tab.key === 'invoices' && pendingInvoices > 0 && (
+                      <div className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {pendingInvoices}
+                      </div>
+                    )}
                   </button>
                 );
               })}
             </div>
+
+            {/* Quick Actions */}
+            <div className="bg-white rounded-2xl border-2 border-gray-200 p-4 mt-6 shadow-lg">
+              <h3 className="font-bold text-gray-900 mb-4">Quick Actions</h3>
+              <div className="space-y-2">
+                <Button
+                  onClick={() => navigate('/booking')}
+                  className="w-full bg-primary hover:bg-primary/90 font-bold"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Book Service
+                </Button>
+                <Button
+                  onClick={() => navigate('/quote')}
+                  variant="outline"
+                  className="w-full font-bold"
+                >
+                  Get Quote
+                </Button>
+                <a
+                  href="tel:+16126854696"
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-xl font-bold hover:bg-green-100 transition-colors"
+                >
+                  <Phone className="w-4 h-4" />
+                  Call Us
+                </a>
+              </div>
+            </div>
           </div>
 
-          {/* Content */}
+          {/* Enhanced Content */}
           <div className="lg:col-span-3">
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
-                <div className="bg-white rounded-2xl border-2 border-gray-200 p-6">
-                  <h2 className="text-2xl font-black text-gray-900 mb-4">Welcome Back!</h2>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="bg-blue-50 rounded-xl p-4">
-                      <Calendar className="w-8 h-8 text-blue-600 mb-2" />
-                      <div className="text-2xl font-black text-gray-900">{bookings.length}</div>
-                      <div className="text-sm text-gray-600">Total Bookings</div>
-                    </div>
-                    <div className="bg-green-50 rounded-xl p-4">
-                      <FileText className="w-8 h-8 text-green-600 mb-2" />
-                      <div className="text-2xl font-black text-gray-900">{invoices.length}</div>
-                      <div className="text-sm text-gray-600">Invoices</div>
-                    </div>
-                    <div className="bg-purple-50 rounded-xl p-4">
-                      <Gift className="w-8 h-8 text-purple-600 mb-2" />
-                      <div className="text-2xl font-black text-gray-900">${totalCredit.toFixed(2)}</div>
-                      <div className="text-sm text-gray-600">Referral Credits</div>
-                    </div>
+                {/* Welcome Section */}
+                <div className="bg-gradient-to-r from-primary to-blue-600 rounded-2xl p-8 text-white shadow-xl">
+                  <h2 className="text-3xl font-black mb-4">Welcome Back, {user?.name || 'Valued Customer'}!</h2>
+                  <p className="text-white/90 mb-6">
+                    Manage your bookings, invoices, and referrals all in one place.
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    <Button
+                      onClick={() => navigate('/booking')}
+                      className="bg-white text-primary hover:bg-gray-100 font-bold"
+                    >
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Schedule Service
+                    </Button>
+                    <Button
+                      onClick={() => navigate('/quote')}
+                      variant="outline"
+                      className="border-white text-white hover:bg-white hover:text-primary font-bold"
+                    >
+                      Get New Quote
+                    </Button>
                   </div>
                 </div>
 
-                {/* Recent Activity */}
-                <div className="bg-white rounded-2xl border-2 border-gray-200 p-6">
-                  <h3 className="text-xl font-black text-gray-900 mb-4">Recent Activity</h3>
+                {/* Enhanced Stats Grid */}
+                <div className="grid md:grid-cols-4 gap-4">
+                  <div className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-primary hover:shadow-lg transition-all">
+                    <div className="flex items-center justify-between mb-4">
+                      <Calendar className="w-8 h-8 text-blue-600" />
+                      <span className="text-2xl font-black text-gray-900">{bookings.length}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 font-semibold">Total Bookings</div>
+                    <div className="text-xs text-green-600 mt-1">{completedBookings} completed</div>
+                  </div>
+                  
+                  <div className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-primary hover:shadow-lg transition-all">
+                    <div className="flex items-center justify-between mb-4">
+                      <FileText className="w-8 h-8 text-green-600" />
+                      <span className="text-2xl font-black text-gray-900">{invoices.length}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 font-semibold">Invoices</div>
+                    {pendingInvoices > 0 && (
+                      <div className="text-xs text-red-600 mt-1">{pendingInvoices} pending</div>
+                    )}
+                  </div>
+                  
+                  <div className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-primary hover:shadow-lg transition-all">
+                    <div className="flex items-center justify-between mb-4">
+                      <Gift className="w-8 h-8 text-purple-600" />
+                      <span className="text-2xl font-black text-gray-900">${totalCredit.toFixed(2)}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 font-semibold">Referral Credits</div>
+                    <div className="text-xs text-purple-600 mt-1">Available to use</div>
+                  </div>
+                  
+                  <div className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-primary hover:shadow-lg transition-all">
+                    <div className="flex items-center justify-between mb-4">
+                      <TrendingUp className="w-8 h-8 text-orange-600" />
+                      <span className="text-2xl font-black text-gray-900">${totalSpent.toFixed(0)}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 font-semibold">Total Spent</div>
+                    <div className="text-xs text-orange-600 mt-1">Lifetime value</div>
+                  </div>
+                </div>
+
+                {/* Enhanced Recent Activity */}
+                <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-lg">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-black text-gray-900">Recent Activity</h3>
+                    <Button
+                      onClick={() => setActiveTab('bookings')}
+                      variant="outline"
+                      size="sm"
+                    >
+                      View All
+                    </Button>
+                  </div>
+                  
                   {bookings.length === 0 ? (
-                    <p className="text-gray-600">No recent activity</p>
+                    <div className="text-center py-12">
+                      <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-4">No bookings yet</p>
+                      <Button onClick={() => navigate('/booking')} className="bg-primary hover:bg-primary/90 font-bold">
+                        Book Your First Service
+                      </Button>
+                    </div>
                   ) : (
-                    <div className="space-y-3">
-                      {bookings.slice(0, 5).map((booking: any) => (
-                        <div key={booking.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-semibold text-gray-900">{booking.service_type}</p>
-                            <p className="text-sm text-gray-600">{booking.preferred_date}</p>
+                    <div className="space-y-4">
+                      {bookings.slice(0, 3).map((booking: any) => (
+                        <div key={booking.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-3 h-3 rounded-full ${
+                              booking.status === 'confirmed' ? 'bg-green-500' :
+                              booking.status === 'pending' ? 'bg-yellow-500' :
+                              'bg-gray-400'
+                            }`} />
+                            <div>
+                              <p className="font-bold text-gray-900">{booking.service_type}</p>
+                              <p className="text-sm text-gray-600">{booking.preferred_date}</p>
+                            </div>
                           </div>
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                             booking.status === 'confirmed' ? 'bg-green-100 text-green-700' :
@@ -221,12 +333,38 @@ const CustomerPortal = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Account Status */}
+                <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-lg">
+                  <h3 className="text-xl font-black text-gray-900 mb-4">Account Status</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span className="text-gray-700">Account in good standing</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Star className="w-5 h-5 text-yellow-500" />
+                      <span className="text-gray-700">Preferred customer</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Clock className="w-5 h-5 text-blue-600" />
+                      <span className="text-gray-700">Member since {new Date().getFullYear()}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
             {activeTab === 'bookings' && (
-              <div className="bg-white rounded-2xl border-2 border-gray-200 p-6">
-                <h2 className="text-2xl font-black text-gray-900 mb-4">My Bookings</h2>
+              <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-lg">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-black text-gray-900">My Bookings</h2>
+                  <Button onClick={() => navigate('/booking')} className="bg-primary hover:bg-primary/90 font-bold">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Book Service
+                  </Button>
+                </div>
+                
                 {bookings.length === 0 ? (
                   <div className="text-center py-12">
                     <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -238,7 +376,7 @@ const CustomerPortal = () => {
                 ) : (
                   <div className="space-y-4">
                     {bookings.map((booking: any) => (
-                      <div key={booking.id} className="border-2 border-gray-200 rounded-xl p-4">
+                      <div key={booking.id} className="border-2 border-gray-200 rounded-xl p-4 hover:border-primary hover:shadow-md transition-all">
                         <div className="flex items-center justify-between mb-3">
                           <h3 className="font-bold text-lg">{booking.service_type}</h3>
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -271,8 +409,8 @@ const CustomerPortal = () => {
             )}
 
             {activeTab === 'invoices' && (
-              <div className="bg-white rounded-2xl border-2 border-gray-200 p-6">
-                <h2 className="text-2xl font-black text-gray-900 mb-4">Invoices</h2>
+              <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-lg">
+                <h2 className="text-2xl font-black text-gray-900 mb-6">Invoices</h2>
                 {invoices.length === 0 ? (
                   <div className="text-center py-12">
                     <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -281,7 +419,7 @@ const CustomerPortal = () => {
                 ) : (
                   <div className="space-y-4">
                     {invoices.map((invoice: any) => (
-                      <div key={invoice.id} className="border-2 border-gray-200 rounded-xl p-4">
+                      <div key={invoice.id} className="border-2 border-gray-200 rounded-xl p-4 hover:border-primary hover:shadow-md transition-all">
                         <div className="flex items-center justify-between">
                           <div>
                             <h3 className="font-bold text-lg">Invoice #{invoice.invoice_number}</h3>
